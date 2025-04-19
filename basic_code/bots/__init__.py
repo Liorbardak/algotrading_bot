@@ -1,5 +1,7 @@
 
-__all__ = ['tradeOrder', 'BaseBot' ,'DefaultBot', 'SimpleBot','CharnyBot','CharnyBotV0']
+__all__ = ['tradeOrder', 'BaseBot' ,'DefaultBot', 'SimpleBot','CharnyBotBase','CharnyBotV0','macdWithRSIBot', 'macdBot' , 'MACrossBot']
 from .basebot import BaseBot , tradeOrder
 from .simplelstbot import DefaultBot, SimpleBot
-from .charnybot import CharnyBot , CharnyBotV0
+from .charnybot import CharnyBotBase , CharnyBotV0
+from .macdbot import macdWithRSIBot , macdBot
+from .MACrossoverbot import  MACrossBot

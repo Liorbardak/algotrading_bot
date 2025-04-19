@@ -6,6 +6,7 @@ class TradeSimSimple(object):
         self._name = name
         self._algoBot = algoBot
 
+
     def run_trade_sim(self, stocks_df: pd.DataFrame, alternative_df: pd.DataFrame , report : "HtmlReport" = None)->Dict:
         '''
         Simple trade - for each stock , at each time , decide if to invest  the money in the stock or in the alternative
@@ -73,5 +74,7 @@ class TradeSimSimple(object):
                 fig = self._algoBot.display(stock_name, stock_df , trade_signal , alternative_df , trade_value_for_this_stock)
                 if fig is not None:
                     report.add_figure(stock_name, fig)
+                    import pylab as plt
+                    plt.close("all")
 
         return info
