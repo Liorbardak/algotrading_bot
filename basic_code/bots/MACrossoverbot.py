@@ -65,7 +65,6 @@ class MACrossBot(SimpleBot):
         '''
         Get "features" from stocks
         :param stock_df:
-        :param do_normalize:
         :return:
         '''
 
@@ -74,12 +73,15 @@ class MACrossBot(SimpleBot):
         features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
         features['ma_fast'] = stock_df['price'].rolling(window=self._params['ma_fast']).mean()
 
-        features['Signal'] = np.zeros(len(features['ma_fast']),)
-        features['Signal'][self._params['ma_fast']:] = \
+
+        fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
+        fast_higher_than_slow[self._params['ma_fast']:] = \
             (features['ma_fast'][self._params['ma_fast']:] > features['ma_slow'][self._params['ma_fast']:]).astype(int)
 
-        features['Position'] = np.diff(features['Signal'])
-
+        # Set the buy indication
+        features['Position'] = np.zeros(len(features['ma_fast']), )
+        features['Position'][1:] = np.diff(fast_higher_than_slow)
+        #features['Position'] = np.diff(fast_higher_than_slow) wrong
 
         return features
 
@@ -117,3 +119,109 @@ class MACrossBot(SimpleBot):
 
 
 
+
+class MACrossV1Bot(MACrossBot):
+    def __init__(self, name: str = 'macrossv1', params : Dict = None):
+        self._name = name
+        if params is not None:
+            self._params = params
+        else:
+            self._params = {'stop_loss_pct' : 0.03,  # Stop loss percentage
+                            'take_profit_pct': 0.06,  # Take profit percentage
+                            'ma_fast':5,
+                            'ma_slow':50,
+                            }
+
+    def get_features(self, stock_df: pd.DataFrame) -> Dict:
+        '''
+        Get "features" from stocks
+        :param stock_df:
+        :return:
+        '''
+
+        features = {}
+        # Moving averages
+        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] =  stock_df['price'].ewm(span=self._params['ma_fast'], adjust=False).mean()
+
+        fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
+        fast_higher_than_slow[self._params['ma_fast']:] = \
+            (features['ma_fast'][self._params['ma_fast']:] > features['ma_slow'][self._params['ma_fast']:]).astype(int)
+
+        # Set the buy indication
+        features['Position'] = np.zeros(len(features['ma_fast']), )
+        features['Position'][1:] = np.diff(fast_higher_than_slow)
+
+        return features
+
+
+
+class MACrossV2Bot(MACrossBot):
+    def __init__(self, name: str = 'macrossv2', params : Dict = None):
+        self._name = name
+        if params is not None:
+            self._params = params
+        else:
+            self._params = {'stop_loss_pct' : 0.03,  # Stop loss percentage
+                            'take_profit_pct': 0.06,  # Take profit percentage
+                            'ma_fast':3,
+                            'ma_slow':50,
+                            }
+
+
+    def get_features(self, stock_df: pd.DataFrame) -> Dict:
+        '''
+        Get "features" from stocks
+        :param stock_df:
+        :return:
+        '''
+
+        features = {}
+        # Moving averages
+        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] =  stock_df['price'].ewm(span=self._params['ma_fast'], adjust=False).mean()
+
+        fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
+        fast_higher_than_slow[self._params['ma_fast']:] = \
+            (features['ma_fast'][self._params['ma_fast']:] > features['ma_slow'][self._params['ma_fast']:]).astype(int)
+
+        # Set the buy indication
+        features['Position'] = np.zeros(len(features['ma_fast']), )
+        features['Position'][1:] = np.diff(fast_higher_than_slow)
+
+        return features
+
+class MACrossV3Bot(MACrossBot):
+    def __init__(self, name: str = 'macrossv3', params : Dict = None):
+        self._name = name
+        if params is not None:
+            self._params = params
+        else:
+            self._params = {'stop_loss_pct' : 0.03,  # Stop loss percentage
+                            'take_profit_pct': 0.06,  # Take profit percentage
+                            'ma_fast':3,
+                            'ma_slow':50,
+                            }
+
+
+    def get_features(self, stock_df: pd.DataFrame) -> Dict:
+        '''
+        Get "features" from stocks
+        :param stock_df:
+        :return:
+        '''
+
+        features = {}
+        # Moving averages
+        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] =  stock_df['price']
+
+        fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
+        fast_higher_than_slow[self._params['ma_fast']:] = \
+            (features['ma_fast'][self._params['ma_fast']:] > features['ma_slow'][self._params['ma_fast']:]).astype(int)
+
+        # Set the buy indication
+        features['Position'] = np.zeros(len(features['ma_fast']), )
+        features['Position'][1:] = np.diff(fast_higher_than_slow)
+
+        return features

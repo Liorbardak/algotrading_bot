@@ -2,22 +2,42 @@ import os.path
 from typing import List
 import pandas as pd
 import matplotlib
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 from basic_code.utils.report_utils import HtmlReport
-
-# matplotlib.use('Qt5Agg')
-# import pylab as plt
 
 from bots import *
 from visualization.visualize_trade import visualize_trade , visualize_all_bots
 
 
 from basic_code.trading_simulations.tradesim import TradeSimSimple
+
 import pickle
 
+def run_bot(inputs : List , trade_bot : BaseBot):
+    '''
+    Run a single bot simulation
+    :param inputs:
+    :param trade_bot:
+    :return:
+    '''
+    [results_dir, stocks_df, reference_index, do_report] = inputs
+    if do_report:
+        report = HtmlReport()
+    else:
+        report = None
+
+    tradeSimulator = TradeSimSimple(algoBot=trade_bot)
+    trade_info = tradeSimulator.run_trade_sim(stocks_df, reference_index, report)
+
+    pickle.dump(trade_info, open(os.path.join(results_dir, f"res_{trade_bot._name}.pickle"), 'wb'))
+
+    visualize_trade(trade_info, stocks_df, reference_index, report)
+    if do_report:
+        report.to_file(os.path.join(results_dir, f"res_{trade_bot._name}.html"))
 
 
-    
 def run_trade_sim(datadir : str ,
                   results_dir: str,
                   trade_bots : List[BaseBot] , run_this_stock_only : str =None ,
@@ -52,23 +72,31 @@ def run_trade_sim(datadir : str ,
         stocks_df = stocks_df[stocks_df['name'] == run_this_stock_only]
 
     #  Loop on all trade bot , simulate & report
-    for trade_bot in trade_bots:
+    if len(trade_bots) == 1:
+        for trade_bot in trade_bots:
+            run_bot([results_dir,stocks_df ,  reference_index, do_report], trade_bot)
+    else:
+        # Parallel
+        partial_task = partial(run_bot, [results_dir,stocks_df ,  reference_index, do_report])
 
-        if do_report:
-            report = HtmlReport()
-        else:
-            report = None
+        with ThreadPoolExecutor(max_workers=len(trade_bots)) as executor:
+            results = list(executor.map(partial_task, trade_bots))
 
-        tradeSimulator = TradeSimSimple(algoBot=trade_bot)
-        trade_info = tradeSimulator.run_trade_sim(stocks_df,  reference_index , report)
+        # if do_report:
+        #     report = HtmlReport()
+        # else:
+        #     report = None
+        #
+        # tradeSimulator = TradeSimSimple(algoBot=trade_bot)
+        # trade_info = tradeSimulator.run_trade_sim(stocks_df,  reference_index , report)
+        #
+        # pickle.dump(trade_info,  open(os.path.join(results_dir, f"res_{trade_bot._name}.pickle"), 'wb'))
+        #
+        # visualize_trade(trade_info , stocks_df, reference_index , report)
+        # if do_report:
+        #     report.to_file(os.path.join(results_dir, f"res_{trade_bot._name}.html"))
 
-        pickle.dump(trade_info,  open(os.path.join(results_dir, f"res_{trade_bot._name}.pickle"), 'wb'))
-
-        visualize_trade(trade_info , stocks_df, reference_index , report)
-        if do_report:
-            report.to_file(os.path.join(results_dir, f"res_{trade_bot._name}.html"))
-
-
+    # Visualize all bots
     visualize_all_bots(datadir, results_dir, trade_bots , reference_key)
 
 
@@ -78,10 +106,11 @@ def run_trade_sim(datadir : str ,
 
 if __name__ == "__main__":
     #datadir = "C:\work\Algobot\data\INCY"
-    datadir = "C:\work\data\snp500"
-    results_dir =  "C:\work\data\/tradeRes\snp500"
-    #run_trade_sim(datadir=datadir,results_dir=results_dir, trade_bots= [CharnyBot()] , run_this_stock_only='CMI')
-    run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[CharnyBotBase(),CharnyBotV0(),macdWithRSIBot(), macdBot() , MACrossBot()])
+    datadir = "C:\work\data\snp500_filtered"
+    results_dir =  "C:\work\data\/tradeRes\macross"
+   # run_trade_sim(datadir=datadir,results_dir=results_dir, trade_bots= [MACrossBot()] , run_this_stock_only='CMI')
+    #run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[CharnyBotBase(),macdWithRSIBot(), macdBot() , MACrossBot()])
+    run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[MACrossV3Bot(name= 'MACross_100_5Bot',params= {'stop_loss_pct' : 0.03, 'take_profit_pct': 0.06,  'ma_fast':100, 'ma_slow':5})])
     
 
 

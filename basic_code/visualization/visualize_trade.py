@@ -70,14 +70,15 @@ def visualize_all_bots(datadir: str,
     import matplotlib
     matplotlib.use('Qt5Agg')
     import pylab as plt
-    fig = plt.figure()
-    plt.plot(reference_index['price'], label = 'reference index ')
+    fig = plt.figure(figsize=(20,15))
+
     for trade_bot in trade_bots:
         trade_info = pickle.load(open(os.path.join(results_dir, f"res_{trade_bot._name}.pickle"), 'rb'))
         plt.plot(trade_info['total_value'] / trade_info['total_value'][0] * 100, label=f"{trade_bot._name}")
+    plt.plot(reference_index['price'], label='reference index ')
     plt.title('overall balance')
     plt.legend()
     plt.ylabel('price')
-    plt.ylabel('day')
+    plt.xlabel('day')
     report.add_figure('overall balance', fig)
     report.to_file(os.path.join(results_dir, f"res_all_bots.html"))

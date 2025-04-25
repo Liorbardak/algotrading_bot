@@ -139,8 +139,8 @@ class macdWithRSIBot(SimpleBot):
             self._params = params
         else:
             self._params = {'rsi_period': 14,
-                            'rsi_overbought' :70,
-                            'rsi_oversold': 30,
+                            'rsi_overbought' : 30, #should be 70
+                            'rsi_oversold': 70, #should be 30
                             'stop_loss_pct' : 0.03,  # Stop loss percentage
                             'take_profit_pct': 0.06,  # Take profit percentage
                             'ma_fast':25,

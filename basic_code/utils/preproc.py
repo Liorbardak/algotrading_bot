@@ -13,7 +13,6 @@ def prerprocess_data(datadir : str , minLengthtoUse :int = 300):
     - Save the reference index and the common stocks data frame
     :param datadir: input directory
     :param minLengthtoUse:  Minimal number of dates in a stock file directory
-
     '''
 
 
@@ -55,20 +54,43 @@ def prerprocess_data(datadir : str , minLengthtoUse :int = 300):
     avgdata.to_csv(os.path.join(datadir, 'reference_index.csv'))
 
 
-def create_inedx(inputdir : str, outputdir: str , stock_list : np.array):
+
+def create_index(inputdir : str, outputdir: str , stock_list : np.array, filter_by_length : bool = False , referenceDates = None):
     '''
     Copy part of the stocks
     :param inputdir: 
     :param outputdir: 
-    :param stock_list_path: 
+    :param stock_list_path:
+    :param filter_by_length - if true , force all stocks to have at least referenceDates
+    :param referenceDates - reference dates that all stocks must have , if None - take it from the first stock
     :return: 
     '''
     os.makedirs(outputdir,exist_ok=True)
-    for sname in stock_list:
-        if os.path.isdir(os.path.join(inputdir, sname)):
-            shutil.copytree(os.path.join(inputdir, sname),os.path.join(outputdir, sname) )
-        else:
-            print(f"{ os.path.join(inputdir, sname)} not found ")
+
+    if(filter_by_length):
+        nfiles  = 0
+        for sname in stock_list:
+            if os.path.isdir(os.path.join(inputdir, sname)):
+                df = pd.read_excel(os.path.join(inputdir, sname, 'stockPrice.xlsx'), engine='openpyxl')
+                if referenceDates is None:
+                    referenceDates = df.Date.values
+                    shutil.copytree(os.path.join(inputdir, sname), os.path.join(outputdir, sname))
+                    print(f'{nfiles} copy {sname} {len( df.Date.values)}')
+                    nfiles += 1
+
+                else:
+                    if len(set(referenceDates)- set(df.Date.values)) == 0:
+                        print(f'{nfiles} copy {sname}  {len( df.Date.values)}')
+                        nfiles += 1
+                        shutil.copytree(os.path.join(inputdir, sname), os.path.join(outputdir, sname))
+                    else:
+                        print(f'{sname} does not fit  {len( df.Date.values)}')
+    else:
+        for sname in stock_list:
+            if os.path.isdir(os.path.join(inputdir, sname)):
+                shutil.copytree(os.path.join(inputdir, sname),os.path.join(outputdir, sname) )
+            else:
+                print(f"{ os.path.join(inputdir, sname)} not found ")
 
 def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
     '''
@@ -102,14 +124,12 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
 
 
 if __name__ == "__main__":
-    dataindir = "C:\work\data\snp500"
-    prerprocess_data(dataindir)
+    #dataindir = "C:\work\data\snp100"
 
-
-    #df = pd.read_excel('C:\work\data\snp100\AAPL\stockPrice.xlsx', engine='openpyxl')
+    prerprocess_data('C:\work\data\snp500_filtered')
 
     # snp = pd.read_csv('C:\work\data\/tickers\sp500_stocks.csv')
-    # create_inedx('C:\work\data\/tickers', 'C:\work\data\snp500',sorted(snp['Ticker'].values))
+    # create_index('C:\work\data\/tickers', 'C:\work\data\snp500_filtered',sorted(snp['Ticker'].values) , filter_by_length = True)
 
 
 
