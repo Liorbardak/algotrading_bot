@@ -105,13 +105,13 @@ def run_trade_sim(datadir : str ,
 
 
 if __name__ == "__main__":
-    #datadir = "C:\work\Algobot\data\INCY"
-    datadir = "C:\work\data\snp500_filtered"
-    results_dir =  "C:\work\data\/tradeRes\macross"
+    datadir = 'C:/Users/dadab/projects/algotrading/data/snp500'
+    results_dir =  "C:/Users/dadab/projects/algotrading/results/macross"
    # run_trade_sim(datadir=datadir,results_dir=results_dir, trade_bots= [MACrossBot()] , run_this_stock_only='CMI')
-    #run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[CharnyBotBase(),macdWithRSIBot(), macdBot() , MACrossBot()])
-    run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[MACrossV3Bot(name= 'MACross_100_5Bot',params= {'stop_loss_pct' : 0.03, 'take_profit_pct': 0.06,  'ma_fast':100, 'ma_slow':5})])
-    
+   # run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[CharnyBotBase(),macdWithRSIBot(), macdBot() , MACrossBot()])
+    run_trade_sim(datadir=datadir, results_dir=results_dir,
+                  trade_bots=[CharnyBotBase(), CharnyBotV0()])
+
 
 
 

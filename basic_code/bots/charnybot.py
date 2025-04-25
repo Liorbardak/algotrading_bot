@@ -36,8 +36,10 @@ class CharnyBotBase(BaseBot):
         :return:
         '''
         import matplotlib
-        matplotlib.use('Qt5Agg')
+        ##matplotlib.use('Qt5Agg')
         import pylab as plt
+        # if plt_ioff:
+        #     plt.ioff()
         # normalize
         stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
         features = self.get_features(
@@ -329,8 +331,10 @@ class CharnyBotV0(CharnyBotBase):
         :return:
         '''
         import matplotlib
-        matplotlib.use('Qt5Agg')
+        #matplotlib.use('Qt5Agg')
         import pylab as plt
+        # if plt_ioff:
+        #     plt.ioff()
         # normalize
         stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
         features = self.get_features(

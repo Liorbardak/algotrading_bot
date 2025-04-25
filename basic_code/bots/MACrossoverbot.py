@@ -31,7 +31,6 @@ class MACrossBot(SimpleBot):
         :return:
         '''
         import matplotlib
-        matplotlib.use('Qt5Agg')
         import pylab as plt
         # normalize
         stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100

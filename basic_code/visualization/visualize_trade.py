@@ -16,7 +16,7 @@ def visualize_trade(trade_info : Dict , stocks_df : pd.DataFrame ,  reference_in
     :return:
     '''
     import matplotlib
-    matplotlib.use('Qt5Agg')
+    #matplotlib.use('Qt5Agg')
     import pylab as plt
     fig = plt.figure()
     plt.plot(trade_info['total_value'] / trade_info['total_value'][0]*100 , label = 'trade')
@@ -68,7 +68,7 @@ def visualize_all_bots(datadir: str,
 
     report = HtmlReport()
     import matplotlib
-    matplotlib.use('Qt5Agg')
+    #matplotlib.use('Qt5Agg')
     import pylab as plt
     fig = plt.figure(figsize=(20,15))
 

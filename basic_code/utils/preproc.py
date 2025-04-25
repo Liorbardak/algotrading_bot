@@ -109,7 +109,7 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
        # normalize so first closing price will be 100
        normFact = 100 / df[(df.name == stock_name) & (df.Date == refData)][reference_key].values[0]
        for k in keys_to_average:
-            df.loc[df.name == stock_name, k] = df[df.name == stock_name][k] * normFact
+            df.loc[df.name == stock_name, k] = df[df.name == stock_name][k].astype(float) * normFact
 
     # average on all stocks per time
     res = []
@@ -124,12 +124,12 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
 
 
 if __name__ == "__main__":
-    #dataindir = "C:\work\data\snp100"
+    datadir ='C:/Users\dadab\projects/algotrading\data/snp500'
 
-    prerprocess_data('C:\work\data\snp500_filtered')
+    snp = pd.read_csv('C:/Users\dadab\projects/algotrading\data/tickers\sp500_stocks.csv')
 
-    # snp = pd.read_csv('C:\work\data\/tickers\sp500_stocks.csv')
-    # create_index('C:\work\data\/tickers', 'C:\work\data\snp500_filtered',sorted(snp['Ticker'].values) , filter_by_length = True)
+    create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values)   , filter_by_length = True)
+    prerprocess_data(datadir)
 
 
 

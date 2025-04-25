@@ -2,8 +2,7 @@ from typing import Dict
 from .basebot import BaseBot , tradeOrder
 import pandas as pd
 import numpy as np
-# import matplotlib
-# matplotlib.use('Qt5Agg')
+
 import pylab as plt
 
 class DefaultBot(BaseBot):
@@ -158,7 +157,6 @@ class SimpleBot(BaseBot):
         :return:
         '''
         import matplotlib
-        matplotlib.use('Qt5Agg')
         import pylab as plt
         # normalize
         stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
