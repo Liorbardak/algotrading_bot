@@ -421,7 +421,7 @@ class CharnyBotV1(CharnyBotBase):
         ma_200 = stock_df['close'].rolling(window=200).mean()
         ma_150 = stock_df['close'].rolling(window=150).mean()
         ma_50 = stock_df['close'].rolling(window=50).mean()
-        fast_ma = stock_df['close'].ewm(span=20, adjust=False).mean()
+        ma_20 = stock_df['close'].ewm(span=20, adjust=False).mean()
 
 
         price_to_ma50_ratio =  stock_df['close'].values / ma_50.values
@@ -449,7 +449,7 @@ class CharnyBotV1(CharnyBotBase):
 
         fast_higher_than_slow = np.zeros(len(stock_df),)
         fast_higher_than_slow[150:] = \
-            (fast_ma[150:] > ma_50[150:]).astype(int)
+            (ma_20[150:] > ma_50[150:]).astype(int)
 
         ma_crossing = np.zeros(len(stock_df), )
         ma_crossing[1:] = np.diff(fast_higher_than_slow)
@@ -461,6 +461,7 @@ class CharnyBotV1(CharnyBotBase):
                     'ma_200': ma_200,
                     'ma_150': ma_150,
                     'ma_50': ma_50,
+                    'ma_20': ma_20,
                     'price_to_ma50_ratio' : price_to_ma50_ratio,
                     'price_to_ma150_ratio': price_to_ma150_ratio,
                     'price_to_ma200_ratio': price_to_ma200_ratio,
@@ -501,11 +502,12 @@ class CharnyBotV1(CharnyBotBase):
         axes[0].plot(features['ma_50'].values, label='ma_50')
         axes[0].plot(features['ma_150'].values, label='ma_150')
         axes[0].plot(features['ma_200'].values, label='ma_200')
+        axes[0].plot(features['ma_20'].values, label='ma_20')
         axes[0].plot(features['ma_150_Slop_buy_criteria']*100, label='ma_150_Slop_buy_criteria')
-        axes[0].plot(features['diff_to_ma50_buy_criteria'] * 90, label='diff_to_ma50_buy_criteria')
-        axes[0].plot(features['diff_to_ma50_sell_criteria']*80, label='diff_to_ma50_sell_criteria')
-        axes[0].plot(features['diff_to_ma150_buy_criteria'] * 70, label='diff_to_ma150_buy_criteria')
-        axes[0].plot(features['diff_to_ma150_sell_criteria']*60, label='diff_to_ma150_sell_criteria')
+        # axes[0].plot(features['diff_to_ma50_buy_criteria'] * 90, label='diff_to_ma50_buy_criteria')
+        # axes[0].plot(features['diff_to_ma50_sell_criteria']*80, label='diff_to_ma50_sell_criteria')
+        # axes[0].plot(features['diff_to_ma150_buy_criteria'] * 70, label='diff_to_ma150_buy_criteria')
+        # axes[0].plot(features['diff_to_ma150_sell_criteria']*60, label='diff_to_ma150_sell_criteria')
 
         sell_points = np.where([t.order_type == 'sell' for t in trade_signal])[0]
         axes[0].scatter(sell_points, stock_df.close.values[sell_points], s=80, facecolors='none', edgecolors='r', label='sell')
@@ -689,7 +691,7 @@ class CharnyBotPlayground(CharnyBotV1):
         :return:
         '''
         import matplotlib
-        #matplotlib.use('TkAgg')
+        matplotlib.use('TkAgg')
         import pylab as plt
 
         # normalize
@@ -697,7 +699,7 @@ class CharnyBotPlayground(CharnyBotV1):
         features = self.get_features(
             stock_df)
 
-        fig,axes = plt.subplots(1,2,figsize=(20,10))
+        fig,axes = plt.subplots(1,2,figsize=(15,8))
 
         axes[0].plot(stock_df.close.values,label='close')
         axes[0].plot(features['ma_50'].values, label='ma_50')
@@ -707,7 +709,7 @@ class CharnyBotPlayground(CharnyBotV1):
         #axes[0].plot(features['ma_150_Slop_buy_criteria']*100, label='ma_150_Slop_buy_criteria')
 
         ta_features = ta.add_all_ta_features(stock_df,'1. open','2. high','3. low', 'close', '5. volume')
-        for ft  in  ['momentum_pvo', 'trend_macd' , 'trend_ema_slow' , 'trend_ema_fast', 'trend_psar_down' , 'trend_psar_up']:
+        for ft  in  ['momentum_rsi', 'momentum_pvo', 'trend_macd' , 'trend_ema_slow' , 'trend_ema_fast', 'trend_psar_down' , 'trend_psar_up']:
             axes[0].plot(ta_features[ft].values, label=ft)
         # axes[0].plot(features['diff_to_ma50_buy_criteria'] * 90, label='diff_to_ma50_buy_criteria')
         # axes[0].plot(features['diff_to_ma50_sell_criteria']*80, label='diff_to_ma50_sell_criteria')
@@ -725,6 +727,7 @@ class CharnyBotPlayground(CharnyBotV1):
         axes[1].plot(trade_value_for_this_stock, label='trade with this stock')
         axes[1].plot(reference_index.close.values, label='reference index')
         axes[1].legend()
+        plt.show()
         return fig
 
 

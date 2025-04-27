@@ -108,7 +108,7 @@ if __name__ == "__main__":
    # run_trade_sim(datadir=datadir,results_dir=results_dir, trade_bots= [MACrossBot()] , run_this_stock_only='CMI')
     #run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[CharnyBotPlayground()], run_this_stock_only='AES',do_report=True)
     run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[CharnyBotV1(), CharnyBotV2()], run_this_stock_only='ZBH',do_report=True )
+                  trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='ZBH')
 
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
     #               trade_bots=[CharnyBotV2(name='CharnyBotV2 50_20')],do_report=True )
