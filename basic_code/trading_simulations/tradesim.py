@@ -35,7 +35,7 @@ class TradeSimSimple(object):
 
             trade_value_for_this_stock = np.zeros(len(dates), )
             # Normalize
-            stocks_df['price'] =  stocks_df['price'].values / stocks_df['price'].values[0] * 100
+            stocks_df['close'] =  stocks_df['close'].values / stocks_df['close'].values[0] * 100
             print(stock_name)
             # Get the trading signal buy/sell/hold for all times
             trade_signal = self._algoBot.strategy(stock_df)
@@ -48,28 +48,28 @@ class TradeSimSimple(object):
                 if (number_of_alternative_stocks == 0) & (number_of_stocks == 0):
                     # init - buy alternative with all your money
                     number_of_alternative_stocks = balance / \
-                                                   alternative_df.loc[alternative_df.Date == date, 'price'].values[0]
+                                                   alternative_df.loc[alternative_df.Date == date, 'close'].values[0]
                     balance = 0
                 if (trade_signal[ti].order_type == 'buy') & (number_of_stocks == 0):
                     # Sell all alternative & buy this stock with all your money
-                    balance = number_of_alternative_stocks * alternative_df[alternative_df.Date == date]['price'].values[0]
-                    number_of_stocks = balance / stock_df.loc[stock_df.Date == date, 'price'].values[0]
+                    balance = number_of_alternative_stocks * alternative_df[alternative_df.Date == date]['close'].values[0]
+                    number_of_stocks = balance / stock_df.loc[stock_df.Date == date, 'close'].values[0]
                     number_of_alternative_stocks = 0
                 if (trade_signal[ti].order_type == 'sell') & (number_of_stocks != 0):
                     # Sell all stocks & buy alternative with all your money
-                    balance = number_of_stocks * stock_df.loc[stock_df.Date == date, 'price'].values[0]
+                    balance = number_of_stocks * stock_df.loc[stock_df.Date == date, 'close'].values[0]
                     number_of_alternative_stocks = balance / \
-                                                   alternative_df.loc[alternative_df.Date == date, 'price'].values[0]
+                                                   alternative_df.loc[alternative_df.Date == date, 'close'].values[0]
                     number_of_stocks = 0
 
                 # Store data
                 info['stocks_per_share'][si, ti] = number_of_stocks
                 info['reference_stocks'][ti] = number_of_alternative_stocks
-                info['total_value'][ti] += number_of_stocks * stock_df.loc[stock_df.Date == date, 'price'].values[0]
+                info['total_value'][ti] += number_of_stocks * stock_df.loc[stock_df.Date == date, 'close'].values[0]
                 info['total_value'][ti] += number_of_alternative_stocks * \
-                                                   alternative_df[alternative_df.Date == date]['price'].values[0]
-                trade_value_for_this_stock[ti] = number_of_stocks * stock_df.loc[stock_df.Date == date, 'price'].values[0] +  number_of_alternative_stocks * \
-                                                   alternative_df[alternative_df.Date == date]['price'].values[0]
+                                                   alternative_df[alternative_df.Date == date]['close'].values[0]
+                trade_value_for_this_stock[ti] = number_of_stocks * stock_df.loc[stock_df.Date == date, 'close'].values[0] +  number_of_alternative_stocks * \
+                                                   alternative_df[alternative_df.Date == date]['close'].values[0]
             if (report is not None):
                 fig = self._algoBot.display(stock_name, stock_df , trade_signal , alternative_df , trade_value_for_this_stock)
                 if fig is not None:
@@ -110,7 +110,7 @@ class TradeSimSimple(object):
 
             trade_value_for_this_stock = np.zeros(len(dates), )
             # Normalize
-            stocks_df['price'] =  stocks_df['price'].values / stocks_df['price'].values[0] * 100
+            stocks_df['close'] =  stocks_df['close'].values / stocks_df['close'].values[0] * 100
             print(stock_name)
             # Get the trading signal buy/sell/hold for all times
             trade_signal = self._algoBot.strategy(stock_df)
@@ -123,28 +123,28 @@ class TradeSimSimple(object):
                 if (number_of_alternative_stocks == 0) & (number_of_stocks == 0):
                     # init - buy alternative with all your money
                     number_of_alternative_stocks = balance / \
-                                                   alternative_df.loc[alternative_df.Date == date, 'price'].values[0]
+                                                   alternative_df.loc[alternative_df.Date == date, 'close'].values[0]
                     balance = 0
                 if (trade_signal[ti].order_type == 'buy') & (number_of_stocks == 0):
                     # Sell all alternative & buy this stock with all your money
-                    balance = number_of_alternative_stocks * alternative_df[alternative_df.Date == date]['price'].values[0]
-                    number_of_stocks = balance / stock_df.loc[stock_df.Date == date, 'price'].values[0]
+                    balance = number_of_alternative_stocks * alternative_df[alternative_df.Date == date]['close'].values[0]
+                    number_of_stocks = balance / stock_df.loc[stock_df.Date == date, 'close'].values[0]
                     number_of_alternative_stocks = 0
                 if (trade_signal[ti].order_type == 'sell') & (number_of_stocks != 0):
                     # Sell all stocks & buy alternative with all your money
-                    balance = number_of_stocks * stock_df.loc[stock_df.Date == date, 'price'].values[0]
+                    balance = number_of_stocks * stock_df.loc[stock_df.Date == date, 'close'].values[0]
                     number_of_alternative_stocks = balance / \
-                                                   alternative_df.loc[alternative_df.Date == date, 'price'].values[0]
+                                                   alternative_df.loc[alternative_df.Date == date, 'close'].values[0]
                     number_of_stocks = 0
 
                 # Store data
                 info['stocks_per_share'][si, ti] = number_of_stocks
                 info['reference_stocks'][ti] = number_of_alternative_stocks
-                info['total_value'][ti] += number_of_stocks * stock_df.loc[stock_df.Date == date, 'price'].values[0]
+                info['total_value'][ti] += number_of_stocks * stock_df.loc[stock_df.Date == date, 'close'].values[0]
                 info['total_value'][ti] += number_of_alternative_stocks * \
-                                                   alternative_df[alternative_df.Date == date]['price'].values[0]
-                trade_value_for_this_stock[ti] = number_of_stocks * stock_df.loc[stock_df.Date == date, 'price'].values[0] +  number_of_alternative_stocks * \
-                                                   alternative_df[alternative_df.Date == date]['price'].values[0]
+                                                   alternative_df[alternative_df.Date == date]['close'].values[0]
+                trade_value_for_this_stock[ti] = number_of_stocks * stock_df.loc[stock_df.Date == date, 'close'].values[0] +  number_of_alternative_stocks * \
+                                                   alternative_df[alternative_df.Date == date]['close'].values[0]
             if (report is not None):
                 fig = self._algoBot.display(stock_name, stock_df , trade_signal , alternative_df , trade_value_for_this_stock)
                 if fig is not None:

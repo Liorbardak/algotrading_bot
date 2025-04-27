@@ -8,5 +8,11 @@ git clone https://github.com/Liorbardak/algoTraing.git
   - filter stocks with missing dates  
 
 Run trading simulation
-main.py 
-    
+sim.py 
+
+On terminal 
+cd C:\Users\dadab\projects\algotrading\algotrading_bot
+.venv\Scripts\activate
+
+python  basic_code\sim_runner.py -i <inputdir> -o <output_dir> -b <bot list>
+      

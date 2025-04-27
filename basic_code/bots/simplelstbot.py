@@ -2,7 +2,7 @@ from typing import Dict
 from .basebot import BaseBot , tradeOrder
 import pandas as pd
 import numpy as np
-
+import ta
 import pylab as plt
 
 class DefaultBot(BaseBot):
@@ -23,7 +23,7 @@ class DefaultBot(BaseBot):
     def display(self, stock_name : str, stock_df: pd.DataFrame ,
                 trade_signal : np.array, reference_index : pd.DataFrame = None)->"fig":
         fig = plt.figure()
-        plt.plot(stock_df.price.values, label='price')
+        plt.plot(stock_df.close.values, label='close')
 
         return fig
 
@@ -36,6 +36,20 @@ class SimpleBot(BaseBot):
         else:
             self._params = {
             }
+
+    def atr_trailing_stop(df, atr_period=14, multiplier=3):
+        """
+        Adds ATR trailing stop loss levels to the dataframe.
+        """
+        # Calculate ATR
+        df['ATR'] = ta.volatility.average_true_range(high=df['High'], low=df['Low'], close=df['Close'],
+                                                     window=atr_period)
+
+        # Initialize trailing stop columns
+        df['Trailing_Stop_Long'] = df['Close'] - multiplier * df['ATR']
+        df['Trailing_Stop_Short'] = df['Close'] + multiplier * df['ATR']
+
+        return df
 
     def find_support(self , prices_low, window):
         '''
@@ -159,13 +173,13 @@ class SimpleBot(BaseBot):
         import matplotlib
         import pylab as plt
         # normalize
-        stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
+        stock_df['close'] = stock_df['close'].values / stock_df['close'].values[0] * 100
         features = self.get_features(
             stock_df)
 
         fig, axes = plt.subplots(1, 2, figsize=(20, 10))
 
-        axes[0].plot(stock_df.price.values, label='price')
+        axes[0].plot(stock_df.close.values, label='close')
         axes[0].plot(features['ma_50'].values, label='ma_50')
         axes[0].plot(features['ma_150'].values, label='ma_150')
         axes[0].plot(features['ma_200'].values, label='ma_200')
@@ -175,7 +189,7 @@ class SimpleBot(BaseBot):
         axes[0].set_title(f' {stock_name}')
 
         axes[1].plot(trade_value_for_this_stock, label='trade with this stock')
-        axes[1].plot(reference_index.price.values, label='reference index')
+        axes[1].plot(reference_index.close.values, label='reference index')
         axes[1].legend()
         return fig
 
@@ -189,11 +203,11 @@ class SimpleBot(BaseBot):
 
         features = {}
         # Moving averages
-        features['ma_200'] = stock_df['price'].rolling(window=200).mean()
-        features['ma_150'] = stock_df['price'].rolling(window=150).mean()
-        features['ma_50'] = stock_df['price'].rolling(window=50).mean()
+        features['ma_200'] = stock_df['close'].rolling(window=200).mean()
+        features['ma_150'] = stock_df['close'].rolling(window=150).mean()
+        features['ma_50'] = stock_df['close'].rolling(window=50).mean()
 
-        features['rsi'] = self.calculate_rsi( stock_df['price'].values)
+        features['rsi'] = self.calculate_rsi( stock_df['close'].values)
         features['cci'] = self.calculate_cci(stock_df['2. high'].values ,stock_df['3. low'].values,  stock_df['close'].values )
 
         return features

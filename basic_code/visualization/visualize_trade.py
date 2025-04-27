@@ -20,10 +20,10 @@ def visualize_trade(trade_info : Dict , stocks_df : pd.DataFrame ,  reference_in
     import pylab as plt
     fig = plt.figure()
     plt.plot(trade_info['total_value'] / trade_info['total_value'][0]*100 , label = 'trade')
-    plt.plot(reference_index['price'], label = 'reference index ')
+    plt.plot(reference_index['close'], label = 'reference index ')
     plt.title('overall balance')
     plt.legend()
-    plt.ylabel('price')
+    plt.ylabel('close')
     plt.ylabel('day')
     if report:
         report.add_figure('overall balance' , fig)
@@ -37,9 +37,9 @@ def visualize_trade(trade_info : Dict , stocks_df : pd.DataFrame ,  reference_in
     #
     #     ax2 = ax1.twinx()
     #     ax1.plot(trade_info['stocks_per_share'][si], 'g-')
-    #     ax2.plot(stock_df.price / stock_df.price.values[0], 'b-')
+    #     ax2.plot(stock_df.price / stock_df.close.values[0], 'b-')
     #     ax1.set_ylabel('number_of_stocks', color='g')
-    #     ax2.set_ylabel('price', color='b')
+    #     ax2.set_ylabel('close', color='b')
     #
     #     plt.title(f' {stock_name}')
     #
@@ -63,7 +63,7 @@ def visualize_all_bots(datadir: str,
     '''
     # Read data
     reference_index = pd.read_csv(os.path.join(datadir, 'reference_index.csv'))
-    reference_index['price'] = reference_index[reference_key]
+    reference_index['close'] = reference_index[reference_key]
 
 
     report = HtmlReport()
@@ -75,10 +75,10 @@ def visualize_all_bots(datadir: str,
     for trade_bot in trade_bots:
         trade_info = pickle.load(open(os.path.join(results_dir, f"res_{trade_bot._name}.pickle"), 'rb'))
         plt.plot(trade_info['total_value'] / trade_info['total_value'][0] * 100, label=f"{trade_bot._name}")
-    plt.plot(reference_index['price'], label='reference index ')
+    plt.plot(reference_index['close'], label='reference index ')
     plt.title('overall balance')
     plt.legend()
-    plt.ylabel('price')
+    plt.ylabel('close')
     plt.xlabel('day')
     report.add_figure('overall balance', fig)
     report.to_file(os.path.join(results_dir, f"res_all_bots.html"))

@@ -33,29 +33,29 @@ class MACrossBot(SimpleBot):
         import matplotlib
         import pylab as plt
         # normalize
-        stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
+        stock_df['close'] = stock_df['close'].values / stock_df['close'].values[0] * 100
         features = self.get_features(
             stock_df)
 
         fig, axes = plt.subplots(1, 2, figsize=(20, 10))
 
-        axes[0].plot(stock_df.price.values, label='price')
+        axes[0].plot(stock_df.close.values, label='close')
         axes[0].plot(features['ma_fast'].values, label='ma_fast')
         axes[0].plot(features['ma_slow'].values, label='ma_slow')
         axes[0].legend()
         axes[0].set_title(f' {stock_name}')
 
         sell_points = np.where([t.order_type == 'sell' for t in trade_signal])[0]
-        axes[0].scatter(sell_points, stock_df.price.values[sell_points], s=80, facecolors='none', edgecolors='r',
+        axes[0].scatter(sell_points, stock_df.close.values[sell_points], s=80, facecolors='none', edgecolors='r',
                         label='sell')
         buy_points = np.where([t.order_type == 'buy' for t in trade_signal])[0]
-        axes[0].scatter(buy_points, stock_df.price.values[buy_points], s=80, facecolors='none', edgecolors='b',
+        axes[0].scatter(buy_points, stock_df.close.values[buy_points], s=80, facecolors='none', edgecolors='b',
                         label='buy')
         axes[0].legend()
         axes[0].set_title(f' {stock_name}')
 
         axes[1].plot(trade_value_for_this_stock, label='trade with this stock')
-        axes[1].plot(reference_index.price.values, label='reference index')
+        axes[1].plot(reference_index.close.values, label='reference index')
         axes[1].legend()
         return fig
 
@@ -69,8 +69,8 @@ class MACrossBot(SimpleBot):
 
         features = {}
         # Moving averages
-        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
-        features['ma_fast'] = stock_df['price'].rolling(window=self._params['ma_fast']).mean()
+        features['ma_slow'] = stock_df['close'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] = stock_df['close'].rolling(window=self._params['ma_fast']).mean()
 
 
         fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
@@ -140,8 +140,8 @@ class MACrossV1Bot(MACrossBot):
 
         features = {}
         # Moving averages
-        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
-        features['ma_fast'] =  stock_df['price'].ewm(span=self._params['ma_fast'], adjust=False).mean()
+        features['ma_slow'] = stock_df['close'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] =  stock_df['close'].ewm(span=self._params['ma_fast'], adjust=False).mean()
 
         fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
         fast_higher_than_slow[self._params['ma_fast']:] = \
@@ -177,8 +177,8 @@ class MACrossV2Bot(MACrossBot):
 
         features = {}
         # Moving averages
-        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
-        features['ma_fast'] =  stock_df['price'].ewm(span=self._params['ma_fast'], adjust=False).mean()
+        features['ma_slow'] = stock_df['close'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] =  stock_df['close'].ewm(span=self._params['ma_fast'], adjust=False).mean()
 
         fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
         fast_higher_than_slow[self._params['ma_fast']:] = \
@@ -212,8 +212,8 @@ class MACrossV3Bot(MACrossBot):
 
         features = {}
         # Moving averages
-        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
-        features['ma_fast'] =  stock_df['price']
+        features['ma_slow'] = stock_df['close'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] =  stock_df['close']
 
         fast_higher_than_slow = np.zeros(len(features['ma_fast']),)
         fast_higher_than_slow[self._params['ma_fast']:] = \

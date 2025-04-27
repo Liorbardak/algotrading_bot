@@ -35,13 +35,13 @@ class macdBot(SimpleBot):
         #matplotlib.use('Qt5Agg')
         import pylab as plt
         # normalize
-        stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
+        stock_df['close'] = stock_df['close'].values / stock_df['close'].values[0] * 100
         features = self.get_features(
             stock_df)
 
         fig, axes = plt.subplots(1, 2, figsize=(20, 10))
 
-        axes[0].plot(stock_df.price.values, label='price')
+        axes[0].plot(stock_df.close.values, label='close')
         axes[0].plot(features['ma_fast'].values, label='ma_fast')
         axes[0].plot(features['ma_slow'].values, label='ma_slow')
         axes[0].plot(features['signal_line'], label='signal_line')
@@ -51,16 +51,16 @@ class macdBot(SimpleBot):
         axes[0].set_title(f' {stock_name}')
 
         sell_points = np.where([t.order_type == 'sell' for t in trade_signal])[0]
-        axes[0].scatter(sell_points, stock_df.price.values[sell_points], s=80, facecolors='none', edgecolors='r',
+        axes[0].scatter(sell_points, stock_df.close.values[sell_points], s=80, facecolors='none', edgecolors='r',
                         label='sell')
         buy_points = np.where([t.order_type == 'buy' for t in trade_signal])[0]
-        axes[0].scatter(buy_points, stock_df.price.values[buy_points], s=80, facecolors='none', edgecolors='b',
+        axes[0].scatter(buy_points, stock_df.close.values[buy_points], s=80, facecolors='none', edgecolors='b',
                         label='buy')
         axes[0].legend()
         axes[0].set_title(f' {stock_name}')
 
         axes[1].plot(trade_value_for_this_stock, label='trade with this stock')
-        axes[1].plot(reference_index.price.values, label='reference index')
+        axes[1].plot(reference_index.close.values, label='reference index')
         axes[1].legend()
         return fig
 
@@ -75,8 +75,8 @@ class macdBot(SimpleBot):
 
         features = {}
         # Moving averages
-        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
-        features['ma_fast'] = stock_df['price'].rolling(window=self._params['ma_fast']).mean()
+        features['ma_slow'] = stock_df['close'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] = stock_df['close'].rolling(window=self._params['ma_fast']).mean()
 
         macd_line =  features['ma_fast'] -  features['ma_slow']
 
@@ -164,13 +164,13 @@ class macdWithRSIBot(SimpleBot):
         #matplotlib.use('Qt5Agg')
         import pylab as plt
         # normalize
-        stock_df['price'] = stock_df['price'].values / stock_df['price'].values[0] * 100
+        stock_df['close'] = stock_df['close'].values / stock_df['close'].values[0] * 100
         features = self.get_features(
             stock_df)
 
         fig, axes = plt.subplots(1, 2, figsize=(20, 10))
 
-        axes[0].plot(stock_df.price.values, label='price')
+        axes[0].plot(stock_df.close.values, label='close')
         axes[0].plot(features['ma_fast'].values, label='ma_fast')
         axes[0].plot(features['ma_slow'].values, label='ma_slow')
         axes[0].plot(features['rsi'], label='rsi')
@@ -181,16 +181,16 @@ class macdWithRSIBot(SimpleBot):
         axes[0].set_title(f' {stock_name}')
 
         sell_points = np.where([t.order_type == 'sell' for t in trade_signal])[0]
-        axes[0].scatter(sell_points, stock_df.price.values[sell_points], s=80, facecolors='none', edgecolors='r',
+        axes[0].scatter(sell_points, stock_df.close.values[sell_points], s=80, facecolors='none', edgecolors='r',
                         label='sell')
         buy_points = np.where([t.order_type == 'buy' for t in trade_signal])[0]
-        axes[0].scatter(buy_points, stock_df.price.values[buy_points], s=80, facecolors='none', edgecolors='b',
+        axes[0].scatter(buy_points, stock_df.close.values[buy_points], s=80, facecolors='none', edgecolors='b',
                         label='buy')
         axes[0].legend()
         axes[0].set_title(f' {stock_name}')
 
         axes[1].plot(trade_value_for_this_stock, label='trade with this stock')
-        axes[1].plot(reference_index.price.values, label='reference index')
+        axes[1].plot(reference_index.close.values, label='reference index')
         axes[1].legend()
         return fig
 
@@ -205,8 +205,8 @@ class macdWithRSIBot(SimpleBot):
 
         features = {}
         # Moving averages
-        features['ma_slow'] = stock_df['price'].rolling(window=self._params['ma_slow']).mean()
-        features['ma_fast'] = stock_df['price'].rolling(window=self._params['ma_fast']).mean()
+        features['ma_slow'] = stock_df['close'].rolling(window=self._params['ma_slow']).mean()
+        features['ma_fast'] = stock_df['close'].rolling(window=self._params['ma_fast']).mean()
 
         macd_line =  features['ma_fast'] -  features['ma_slow']
 
@@ -218,7 +218,7 @@ class macdWithRSIBot(SimpleBot):
 
 
 
-        features['rsi'] = self.calculate_rsi(stock_df['price'].values)
+        features['rsi'] = self.calculate_rsi(stock_df['close'].values)
         features['macd_hist'] = macd_diff
         features['signal_line'] = signal_line
         features['macd_line'] = macd_line

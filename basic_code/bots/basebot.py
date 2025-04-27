@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict
 class tradeOrder:
-    def __init__(self, order_type : str , amount : float = np.inf  ):
+    def __init__(self, order_type : str = 'hold' , amount : float = np.inf  ):
         self.order_type = order_type
         self.amount = amount
 
