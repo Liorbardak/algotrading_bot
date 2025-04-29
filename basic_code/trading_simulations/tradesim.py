@@ -2,6 +2,7 @@ from typing import Dict
 import pandas as pd
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
+import copy
 class TradeSimSimple(object):
     def __init__(self, algoBot : "BaseBot" , name: str = 'simple trader' ):
         self._name = name
@@ -30,12 +31,25 @@ class TradeSimSimple(object):
 
 
         # loop on all stock , run bot strategy  per stock
-        for si,  (stock_name, stock_df) in enumerate(stocks_df.groupby('name', sort=True)):
-            stock_df = stock_df.reset_index()
+        for si,  (stock_name, stock_dfs) in enumerate(stocks_df.groupby('name', sort=True)):
+            try:
+                stock_df = pd.DataFrame(stock_dfs.copy())
+                stock_df.reset_index(inplace=True, drop=True)
+            except Exception as e:
+                print("Error during reset_index:", e)
+                print("DataFrame info:")
+                print(stock_df.info())
+                print(stock_df.head())
+                raise
+
+            # stock_df = stock_df.reset_index()
+            # stock_df = copy(stock_dfs)
+            # stock_df = stock_df.reset_index()
+
 
             trade_value_for_this_stock = np.zeros(len(dates), )
             # Normalize
-            stocks_df['close'] =  stocks_df['close'].values / stocks_df['close'].values[0] * 100
+            stock_df['close'] =  stock_df['close'].values / stock_df['close'].values[0] * 100
             print(stock_name)
             # Get the trading signal buy/sell/hold for all times
             trade_signal = self._algoBot.strategy(stock_df)

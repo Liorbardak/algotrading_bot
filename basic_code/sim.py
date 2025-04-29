@@ -88,6 +88,8 @@ def run_trade_sim(datadir : str ,
             run_bot([results_dir,stocks_df ,  reference_index, do_report], trade_bot)
     else:
         # Parallel
+        do_report = False
+        print('no plots in parallel mode')
         partial_task = partial(run_bot, [results_dir,stocks_df ,  reference_index, do_report])
 
         with ThreadPoolExecutor(max_workers=len(trade_bots)) as executor:
@@ -105,13 +107,14 @@ def run_trade_sim(datadir : str ,
 if __name__ == "__main__":
     datadir = 'C:/Users/dadab/projects/algotrading/data/snp500'
     results_dir =  "C:/Users/dadab/projects/algotrading/results/playground"
+    results_dir = "C:/Users/dadab/projects/algotrading/results/ToKeep"
 
     #
     #
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[CharnyBotV3() , CharnyBotV4()], do_report=False,  run_this_stock_only='A')
+    #               trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
     run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[CharnyBotV1() , CharnyBotV2() , CharnyBotV3() , CharnyBotV4()], do_report=False)
+                  trade_bots=[CharnyBotBase(), CharnyBotV1() , CharnyBotV2()], do_report=False)
 
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
     #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='A')

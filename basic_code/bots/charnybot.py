@@ -414,7 +414,7 @@ class CharnyBotV1(CharnyBotBase):
             max_in_past = is_local_max.values[:t - self._params['support_level_window'] // 2]
             min_in_past = is_local_min.values[:t - self._params['support_level_window'] // 2]
             if(np.any(min_in_past)):
-                support_level[t] = stock_df['close'].values[np.where(min_in_past)[0][-1]]
+                support_level[t] =np.min([stock_df['close'].values[np.where(min_in_past)[0][-1]], stock_df['close'].values[t] * 0.99])
             if(np.any(max_in_past)):
                 resistance_level[t] = stock_df['close'].values[np.where(max_in_past)[0][-1]]
 
@@ -625,8 +625,9 @@ class CharnyBotV2(CharnyBotV1):
         # Heuristics
         trade_criteria = np.full(len(stock_df), 0)
 
-        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
-        trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
+        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)  & (features['number_ma_crossing_in_last_50'] < 2)]= 1  # buy
+        trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell]= 1  # buy
+
 
         # convert to single action of sell/buy all
         nstocks = 0
@@ -661,7 +662,7 @@ class CharnyBotV3(CharnyBotV1):
 
         trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
         #trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
-        trade_criteria[(stock_df['close'].values * 0.995 < features['support_level'])] = -1
+        trade_criteria[(stock_df['close'].values < features['support_level']*0.995)] = -1
         # convert to single action of sell/buy all
         nstocks = 0
         trade_signal = np.full(len(stock_df), tradeOrder('hold'))
@@ -694,7 +695,7 @@ class CharnyBotV4(CharnyBotV1):
 
         trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
         #trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
-        trade_criteria[(stock_df['close'].values * 0.995 < features['support_level']) | (features['ma_crossing'] == -1)] = -1
+        trade_criteria[(stock_df['close'].values < features['support_level']*0.995) | (features['ma_crossing'] == -1)] = -1
         # convert to single action of sell/buy all
         nstocks = 0
         trade_signal = np.full(len(stock_df), tradeOrder('hold'))
