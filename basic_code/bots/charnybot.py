@@ -1,11 +1,12 @@
 from typing import Dict
+import pandas as pd
+import numpy as np
+import ta
+from scipy.ndimage import maximum_filter1d, minimum_filter1d
 
 from mpmath.libmp import normalize
 
 from .basebot import BaseBot , tradeOrder
-import pandas as pd
-import numpy as np
-import ta
 
 
 
@@ -15,14 +16,16 @@ class CharnyBotBase(BaseBot):
         if params is not None:
             self._params = params
         else:
-            self._params = {'SMA150_Slop_buy_criteria' : 0.001,
+            self._params = {
                             'SMA150_Slop_day_gap' : 50,
+                            'Current_Precent_From_50SMA_to_sell': 0.1,
+                            'support_level_window': 11,
                             'Current_Precent_From_50SMA' : 0.05,
                             'Current_Precent_From_50SMA_to_buy': 0.01,
                             'Current_Precent_From_150SMA_to_buy': 0.02,
-                            'Current_Precent_From_50SMA_to_sell': 0.1,
                             'Max_Precent_above_50SMA_Past_X_Years' : 0.7,
-                            '200SMA_margin_sell' : 0.015
+                            '200SMA_margin_sell' : 0.015,
+                            'SMA150_Slop_buy_criteria' : 0.001,
                             }
 
     def display(self, stock_name : str, stock_df: pd.DataFrame ,
@@ -251,20 +254,6 @@ class CharnyBotBase(BaseBot):
 
         return trade_signal
 
-
-
-#
-# from typing import Dict
-#
-# from mpmath.libmp import normalize
-#
-# from .basebot import BaseBot , tradeOrder
-# import pandas as pd
-# import numpy as np
-#
-
-
-
 class CharnyBotV0(CharnyBotBase):
     def __init__(self, name: str = 'charnybotv0' , params : Dict = None):
         super().__init__(name , params)
@@ -409,6 +398,28 @@ class CharnyBotV1(CharnyBotBase):
         super().__init__(name , params)
         self._name = name
 
+
+
+    # Detect support/resistance levels: price is lowest/highset in a window
+    def detect_support_and_resistance(self, stock_df: pd.DataFrame):
+
+        local_max = maximum_filter1d(stock_df['close'], size=self._params['support_level_window'])
+        local_min = minimum_filter1d(stock_df['close'], size=self._params['support_level_window'])
+        gap = 1e-4
+        is_local_max = (local_max== stock_df['close']) & (local_min+(1+gap) < stock_df['close'])
+        is_local_min = (local_min == stock_df['close']) & (local_max*(1-gap) > stock_df['close'])
+        support_level = np.ones(len(stock_df),)*np.inf
+        resistance_level = np.zeros(len(stock_df), )
+        for  t in np.arange(self._params['support_level_window'], len(stock_df)):
+            max_in_past = is_local_max.values[:t - self._params['support_level_window'] // 2]
+            min_in_past = is_local_min.values[:t - self._params['support_level_window'] // 2]
+            if(np.any(min_in_past)):
+                support_level[t] = stock_df['close'].values[np.where(min_in_past)[0][-1]]
+            if(np.any(max_in_past)):
+                resistance_level[t] = stock_df['close'].values[np.where(max_in_past)[0][-1]]
+
+        return is_local_max, is_local_min, resistance_level, support_level
+
     def get_features(self, stock_df: pd.DataFrame) -> Dict:
         '''
         Get "features" from stocks
@@ -492,7 +503,7 @@ class CharnyBotV1(CharnyBotBase):
             ma_crossing_success[i] = success_cnt
             trend_cnt = trend_cnt + trend
 
-
+        is_local_max, is_local_min,resistance_level, support_level =  self.detect_support_and_resistance(stock_df)
 
         features = dict()
         features['ma_200']= ma_200
@@ -505,9 +516,11 @@ class CharnyBotV1(CharnyBotBase):
         features['ma_crossing_success'] = ma_crossing_success
         features['number_ma_crossing_in_last_50'] = number_ma_crossing_in_last_50
         features['number_ma_peaks_in_last_50']   = number_ma_peaks_in_last_50
-
         features['diff_to_ma50_sell_criteria'] = diff_to_ma50_sell_criteria
-
+        features['is_local_max'] = is_local_max
+        features['is_local_min'] = is_local_min
+        features['resistance_level'] = resistance_level
+        features['support_level'] = support_level
 
 
         return features
@@ -524,6 +537,7 @@ class CharnyBotV1(CharnyBotBase):
         '''
         import matplotlib
         #matplotlib.use('Qt5Agg')
+        #matplotlib.use('Agg')
         import pylab as plt
         # if plt_ioff:
         #     plt.ioff()
@@ -645,9 +659,9 @@ class CharnyBotV3(CharnyBotV1):
         # Heuristics
         trade_criteria = np.full(len(stock_df), 0)
 
-        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1 ) & (features['ma_crossing_success'] > 1 )]= 1  # buy
-        trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
-
+        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
+        #trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
+        trade_criteria[(stock_df['close'].values * 0.995 < features['support_level'])] = -1
         # convert to single action of sell/buy all
         nstocks = 0
         trade_signal = np.full(len(stock_df), tradeOrder('hold'))
@@ -678,10 +692,9 @@ class CharnyBotV4(CharnyBotV1):
         # Heuristics
         trade_criteria = np.full(len(stock_df), 0)
 
-        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)  ]= 1  # buy
-        trade_criteria [(features['ma_crossing'] == -1)  | (features['diff_to_ma50_sell_criteria']  )] = -1  # sell
-        trade_criteria[(features['ma_crossing'] == -1)] = -1  # sell
-
+        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
+        #trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
+        trade_criteria[(stock_df['close'].values * 0.995 < features['support_level']) | (features['ma_crossing'] == -1)] = -1
         # convert to single action of sell/buy all
         nstocks = 0
         trade_signal = np.full(len(stock_df), tradeOrder('hold'))
@@ -693,7 +706,6 @@ class CharnyBotV4(CharnyBotV1):
                 trade_signal[t] = tradeOrder('sell')
                 nstocks = 0
         return trade_signal
-
 
 
 ##################################################################################################
@@ -730,18 +742,19 @@ class CharnyBotPlayground(CharnyBotV1):
         axes[0].plot(features['ma_150'].values, label='ma_150')
         axes[0].plot(features['number_ma_crossing_in_last_50'].values, label='number_ma_crossing_in_last_50')
         axes[0].plot(features['number_ma_peaks_in_last_50'].values, label='number_ma_peaks_in_last_50')
+        axes[0].plot(features['support_level'].values, label='support_level')
+        axes[0].plot(features['resistance_level'].values, label='resistance_level')
 
-        #axes[0].plot(features['ma_200'].values, label='ma_200')
 
-        #axes[0].plot(features['ma_150_Slop_buy_criteria']*100, label='ma_150_Slop_buy_criteria')
-
-        # ta_features = ta.add_all_ta_features(stock_df,'1. open','2. high','3. low', 'close', '5. volume')
         for ft  in  ['momentum_rsi', 'momentum_pvo', 'trend_macd' , 'trend_ema_slow' , 'trend_ema_fast', 'trend_psar_down' , 'trend_psar_up']:
             axes[0].plot(features[ft].values, label=ft)
-        # axes[0].plot(features['diff_to_ma50_buy_criteria'] * 90, label='diff_to_ma50_buy_criteria')
-        # axes[0].plot(features['diff_to_ma50_sell_criteria']*80, label='diff_to_ma50_sell_criteria')
-        # axes[0].plot(features['diff_to_ma150_buy_criteria'] * 70, label='diff_to_ma150_buy_criteria')
-        # axes[0].plot(features['diff_to_ma150_sell_criteria']*60, label='diff_to_ma150_sell_criteria')
+
+
+        resistance_points = np.where(features['is_local_max'])[0]
+        axes[0].scatter(resistance_points, stock_df.close.values[resistance_points], s=60, facecolors='none', edgecolors='y', label='is_local_max')
+        support_points = np.where(features['is_local_min'])[0]
+        axes[0].scatter(support_points, stock_df.close.values[support_points], s=60, facecolors='none', edgecolors='c', label='is_local_min')
+
 
         sell_points = np.where([t.order_type == 'sell' for t in trade_signal])[0]
         axes[0].scatter(sell_points, stock_df.close.values[sell_points], s=80, facecolors='none', edgecolors='r', label='sell')
@@ -788,6 +801,7 @@ class CharnyBotPlayground(CharnyBotV1):
 
         trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
         trade_criteria[features['ma_crossing'] == -1] = -1  # sell
+
         # convert to single action of sell/buy all
         nstocks = 0
         trade_signal = np.full(len(stock_df), tradeOrder('hold'))

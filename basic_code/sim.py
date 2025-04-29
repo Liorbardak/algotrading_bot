@@ -107,11 +107,11 @@ if __name__ == "__main__":
     results_dir =  "C:/Users/dadab/projects/algotrading/results/playground"
 
     #
-    # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[CharnyBotV2()], do_report=True)
-
-    run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[CharnyBotV1() , CharnyBotV2()], do_report=False)
     #
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='ADI')
+    #               trade_bots=[CharnyBotV3() , CharnyBotV4()], do_report=False,  run_this_stock_only='A')
+    run_trade_sim(datadir=datadir, results_dir=results_dir,
+                  trade_bots=[CharnyBotV1() , CharnyBotV2() , CharnyBotV3() , CharnyBotV4()], do_report=False)
+
+    # run_trade_sim(datadir=datadir, results_dir=results_dir,
+    #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='A')

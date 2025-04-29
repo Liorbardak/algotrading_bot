@@ -61,8 +61,10 @@ def create_index(inputdir : str, outputdir: str , stock_list : np.array, filter_
     :param inputdir: 
     :param outputdir: 
     :param stock_list_path:
+    :param use_stocks_in_list - if true , force all stocks to have at least referenceDates
     :param filter_by_length - if true , force all stocks to have at least referenceDates
     :param referenceDates - reference dates that all stocks must have , if None - take it from the first stock
+
     :return: 
     '''
     os.makedirs(outputdir,exist_ok=True)
@@ -121,15 +123,26 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
     return pd.DataFrame(res)
 
 
+def create_train_and_validation(inputdir : str, outputdir: str , stock_list_not_to_use : np.array):
 
 
 if __name__ == "__main__":
-    datadir ='C:/Users\dadab\projects/algotrading\data/snp500'
+    # datadir ='C:/Users\dadab\projects/algotrading\data/snp500'
+    #
+    # snp = pd.read_csv('C:/Users\dadab\projects/algotrading\data/tickers\sp500_stocks.csv')
+    #
+    # create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
+    #              filter_by_length = False ,  )
+    # prerprocess_data(datadir)
+
+    all_stock_dir = 'C:/Users/dadab/projects/algotrading/data/tickers'
+    datadir ='C:/Users/dadab\projects/algotrading/data/training'
 
     snp = pd.read_csv('C:/Users\dadab\projects/algotrading\data/tickers\sp500_stocks.csv')
-
-    create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values)   , filter_by_length = True)
-    prerprocess_data(datadir)
+    all_stocks = [d for d in os.listdir(all_stock_dir) if os.path.isdir(os.path.join(all_stock_dir, d))]
 
 
+
+    create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
+                 filter_by_length = False ,  )
 
