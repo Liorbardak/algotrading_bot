@@ -105,17 +105,13 @@ def run_trade_sim(datadir : str ,
 if __name__ == "__main__":
     datadir = 'C:/Users/dadab/projects/algotrading/data/snp500'
     results_dir =  "C:/Users/dadab/projects/algotrading/results/playground"
-   # run_trade_sim(datadir=datadir,results_dir=results_dir, trade_bots= [MACrossBot()] , run_this_stock_only='CMI')
-    #run_trade_sim(datadir=datadir, results_dir=results_dir, trade_bots=[CharnyBotPlayground()], run_this_stock_only='AES',do_report=True)
-    run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='ZBH')
 
+    #
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[CharnyBotV2(name='CharnyBotV2 50_20')],do_report=True )
+    #               trade_bots=[CharnyBotV2()], do_report=True)
 
-    # import matplotlib
-    # matplotlib.use('TkAgg')
-
-
-
-
+    run_trade_sim(datadir=datadir, results_dir=results_dir,
+                  trade_bots=[CharnyBotV1() , CharnyBotV2()], do_report=False)
+    #
+    # run_trade_sim(datadir=datadir, results_dir=results_dir,
+    #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='ADI')
