@@ -122,8 +122,62 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
         res.append(r)
     return pd.DataFrame(res)
 
+def  dataset_preproc_conversion(inputdir : str,stocks_to_use : np.array, min_length : int ):
+    dts = []
+    for stock_name in stocks_to_use:
+        df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
+        if (len(df) < min_length):
+            continue
+        # Add some stuff ...
+        df['time_idx'] = np.arange(len(df))  # To do - make this a global index
+        df['year'] = [v.astype('datetime64[Y]').astype(int) + 1970 for v in df.Date.values]
+        df['month'] = [v.astype('datetime64[M]').astype(int) % 12 + 1 for v in df.Date.values]
+        df['day'] = [(v - v.astype('datetime64[M]')).astype(int) + 1 for v in df.Date.values]
+        df['log_close'] = np.log(df['close'] + 1)
+        df['stock_name'] = stock_name
+        df['open'] = df['1. open']
+        df['high'] = df['2. high']
+        df['low'] = df['3. low']
+        df['volume'] = df['5. volume']
+        df = df[
+            ['time_idx', 'year', 'month', 'day', 'open', 'close', 'high', 'low', 'volume', 'log_close', 'stock_name']]
+        dts.append(df)
+    return pd.concat(dts)
 
-def create_train_and_validation(inputdir : str, outputdir: str , stock_list_not_to_use : np.array):
+def create_train_set(inputdir : str, outputdir: str , stock_list_not_to_use : np.array ,
+                     number_of_stocks_to_use : int =None,
+                     min_length : int = 150):
+    '''
+    Create train and validation data
+    :param inputdir:
+    :param outputdir:
+    :param stock_list_not_to_use:
+    :param min_length - minimal length of a stock
+    :return:
+    '''
+    os.makedirs(outputdir, exist_ok=True)
+    # get all stocks that can be trained on
+    all_stocks = np.array([d for d in os.listdir(inputdir) if (os.path.isdir(os.path.join(all_stock_dir, d)) & (d not in stock_list_not_to_use)) ])
+    stocks_to_use = all_stocks[np.random.permutation(len(all_stocks))]
+    if number_of_stocks_to_use is None:
+        number_of_stocks_to_use = len(stocks_to_use)
+    else:
+        stocks_to_use = stocks_to_use[:number_of_stocks_to_use]
+        number_of_stocks_to_use = len(stocks_to_use)
+
+    indices = np.random.permutation(number_of_stocks_to_use)
+    # Define split sizes
+    train_size = int(0.7 * number_of_stocks_to_use)
+    val_size = number_of_stocks_to_use - train_size
+    train_indices = indices[:train_size]
+    val_indices = indices[train_size:train_size + val_size]
+    train_df = dataset_preproc_conversion(inputdir,  stocks_to_use[train_indices], min_length)
+
+    train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
+
+    val_df = dataset_preproc_conversion(inputdir, stocks_to_use[val_indices], min_length)
+    val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
+
 
 
 if __name__ == "__main__":
@@ -135,14 +189,16 @@ if __name__ == "__main__":
     #              filter_by_length = False ,  )
     # prerprocess_data(datadir)
 
+
+
     all_stock_dir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    datadir ='C:/Users/dadab\projects/algotrading/data/training'
+    datadir ='C:/Users/dadab/projects/algotrading/data/training/dbsmall'
+    #
+    snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
 
-    snp = pd.read_csv('C:/Users\dadab\projects/algotrading\data/tickers\sp500_stocks.csv')
-    all_stocks = [d for d in os.listdir(all_stock_dir) if os.path.isdir(os.path.join(all_stock_dir, d))]
+    create_train_set(all_stock_dir, datadir,sorted(snp['Ticker'].values) , 40)
 
-
-
-    create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
-                 filter_by_length = False ,  )
+    #
+    # create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
+    #              filter_by_length = False ,  )
 
