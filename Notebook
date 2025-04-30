@@ -1,3 +1,42 @@
-Heuristic based bots
 
--
+Status 30/4/2025
+Heuristic:
+Best so far :
+Slightly better than snp (~10%) , not good and stable enough
+buy:
+- Long Trend is upwards/ not going down:
+    - the slop of ma_150 is positive
+- Not too much fluctuations - limit the effect of delayed trade commands:
+     - threshold on zero crossing of bandpass 20-50
+-  ma20 is crossing ma50 upward
+sell :
+-  ma20 is crossing ma50 downward
+
+
+
+Failed Tests:
+Heuristics :
+    - most of the logic in the original charnybot  does not contribute or losses money
+    - Relaying on distance/ratio to a single ma (ma50 for example) as a buy/sell timing does
+        not work well, In many cases the stock price is not "related" to this ma .
+Indicators :
+  RSI :
+     - does not work as primary indicator
+     - Did not work as a secondary clue :
+        - Dont buy if  overbought
+            could not find ANY threshold that improved
+        - Timing of buying / selling
+            delay the sell / buy decision guided by  RSI
+  MACD :
+       bad results as primary  indicator
+  Support level :
+       - Adding stop loss a bit below the nearest support level - failed
+
+  MA crossing :
+       - As a single indicator - does  not give good results
+       - Tried several ma periods / types 20-50 looks best , not by much
+
+
+
+
+
