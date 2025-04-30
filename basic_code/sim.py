@@ -111,10 +111,10 @@ if __name__ == "__main__":
 
     #
     #
-    # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
     run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[CharnyBotBase(), CharnyBotV1() , CharnyBotV2()], do_report=False)
+                  trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
+    # run_trade_sim(datadir=datadir, results_dir=results_dir,
+    #               trade_bots=[CharnyBotBase(), CharnyBotV1() , CharnyBotV2()], do_report=False)
 
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
     #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='A')

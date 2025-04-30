@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 from pytorch_lightning.callbacks import ModelCheckpoint
 import pandas as pd
 import numpy as np
@@ -22,8 +23,9 @@ class LitStockPredictor(pl.LightningModule):
         x, y = batch
         preds = self(x)
         loss = self.criterion(preds, y)
-        self.log("train_loss", loss)
-        print("train_loss", loss)
+        #self.log("train_loss", loss)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.print("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -34,5 +36,15 @@ class LitStockPredictor(pl.LightningModule):
         print("val_loss", loss)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.params['lr'])
-
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.params['lr'])
+        #scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_loss",  # Metric to watch
+                "interval": "epoch",  # Check every epoch
+                "frequency": 1,
+            },
+        }
