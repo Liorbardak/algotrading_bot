@@ -28,9 +28,9 @@ def run_training(datadir : str ,outdir: str , max_epochs=2):
     )
 
 
-    train_loader, val_loader= get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60)
-    model = LitStockPredictor(model=TransformerPredictorModel(), loss= nn.MSELoss())
-    trainer = pl.Trainer(max_epochs=2, accelerator="gpu", devices=1 ,     callbacks=[checkpoint_callback],
+    train_loader, val_loader= get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 ,output_file = os.path.join(checkpoints_path,'scale.pkl')  )
+    model = LitStockPredictor()
+    trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", devices=1 ,     callbacks=[checkpoint_callback],
                          default_root_dir=log_path,
                          )
     trainer.fit(model, train_loader, val_loader)
@@ -38,8 +38,8 @@ def run_training(datadir : str ,outdir: str , max_epochs=2):
 
 
 if __name__ == "__main__":
-    datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
+    datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbmedium'
     outdir = "C:/Users/dadab/projects/algotrading/training/test"
-    run_training(datadir, outdir)
+    run_training(datadir, outdir , max_epochs=100)
     # train_dataloader, val_dataloader, training = get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 ,     batch_size = 64 )
     # run_training(train_dataloader, val_dataloader, training)

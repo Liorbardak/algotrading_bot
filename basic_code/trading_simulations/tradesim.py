@@ -48,7 +48,7 @@ class TradeSimSimple(object):
 
 
             trade_value_for_this_stock = np.zeros(len(dates), )
-            # Normalize
+            # Normalize so first close values is 100
             stock_df['close'] =  stock_df['close'].values / stock_df['close'].values[0] * 100
             print(stock_name)
             # Get the trading signal buy/sell/hold for all times

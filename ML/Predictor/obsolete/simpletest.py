@@ -129,7 +129,7 @@ def run_training( train_dataloader, val_dataloader , training):
     # Create trainer
     trainer = pl.Trainer(
         max_epochs=20,
-        accelerator= "gpu" if torch.cuda.is_available() else "cpu",
+        accelerator= "cpu", #"gpu" if torch.cuda.is_available() else "cpu",
         devices=1,
         gradient_clip_val=0.1,
         limit_train_batches=30,

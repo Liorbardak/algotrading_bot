@@ -49,15 +49,16 @@ def run_trade_sim(datadir : str ,
                   results_dir: str,
                   trade_bots : List[BaseBot] , run_this_stock_only : str =None ,
                   fix_reference_index = False ,do_report: bool = False,
+                  do_run: bool = True,
                  ):
     '''
     Run a simple trade simulation
     :param datadir:
     :param trade_bots:
     :param run_this_stock_only:
-    :param fix_reference_index:
+    :param fix_reference_index: if true - the reference is do nothing
     :param do_report : save report per bot
-    :param reference_key :  price to work with
+    :param  do_run - if false - only run visualize_all_bots
     :return:
     '''
     import ctypes
@@ -81,19 +82,19 @@ def run_trade_sim(datadir : str ,
     if run_this_stock_only is not None:
         # Debug  - run only on one stock
         stocks_df = stocks_df[stocks_df['name'] == run_this_stock_only]
+    if do_run:
+        #  Loop on all trade bot , simulate & report
+        if len(trade_bots) == 1:
+            for trade_bot in trade_bots:
+                run_bot([results_dir,stocks_df ,  reference_index, do_report], trade_bot)
+        else:
+            # Parallel
+            do_report = False
+            print('no plots in parallel mode')
+            partial_task = partial(run_bot, [results_dir,stocks_df ,  reference_index, do_report])
 
-    #  Loop on all trade bot , simulate & report
-    if len(trade_bots) == 1:
-        for trade_bot in trade_bots:
-            run_bot([results_dir,stocks_df ,  reference_index, do_report], trade_bot)
-    else:
-        # Parallel
-        do_report = False
-        print('no plots in parallel mode')
-        partial_task = partial(run_bot, [results_dir,stocks_df ,  reference_index, do_report])
-
-        with ThreadPoolExecutor(max_workers=len(trade_bots)) as executor:
-            results = list(executor.map(partial_task, trade_bots))
+            with ThreadPoolExecutor(max_workers=len(trade_bots)) as executor:
+                results = list(executor.map(partial_task, trade_bots))
 
 
     # Visualize all bots
@@ -107,14 +108,16 @@ def run_trade_sim(datadir : str ,
 if __name__ == "__main__":
     datadir = 'C:/Users/dadab/projects/algotrading/data/snp500'
     results_dir =  "C:/Users/dadab/projects/algotrading/results/playground"
-    results_dir = "C:/Users/dadab/projects/algotrading/results/ToKeep"
+
 
     #
     #
-    run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[CharnyBotBase(), CharnyBotV1() , CharnyBotV2()], do_report=False)
+    #               trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
+    run_trade_sim(datadir=datadir, results_dir=results_dir,
+                  trade_bots=[ CharnyBotV4()], do_report=False)
+    # run_trade_sim(datadir=datadir, results_dir=results_dir,
+    #               trade_bots=[CharnyBotV2() , CharnyBotV4()], do_report=False , do_run = False)
 
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
     #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='A')

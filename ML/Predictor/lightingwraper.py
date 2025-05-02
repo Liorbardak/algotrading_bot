@@ -3,19 +3,14 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
-from pytorch_lightning.callbacks import ModelCheckpoint
-import pandas as pd
-import numpy as np
-from torch.utils.data import DataLoader, Dataset
-from sklearn.preprocessing import MinMaxScaler
-
-
+from models.transformer_predictor import TransformerPredictorModel
 class LitStockPredictor(pl.LightningModule):
-    def __init__(self , model, loss, params  = {'lr' : 1e-3}):
+    def __init__(self , model=TransformerPredictorModel() ,  params  = {'lr' : 1e-4 ,'loss': nn.MSELoss()}):
         super().__init__()
         self.model = model
-        self.criterion = loss
+        self.criterion = params['loss']
         self.params = params
+        self.indx = 0
     def forward(self, x):
         return self.model(x)
 
@@ -23,17 +18,27 @@ class LitStockPredictor(pl.LightningModule):
         x, y = batch
         preds = self(x)
         loss = self.criterion(preds, y)
-        #self.log("train_loss", loss)
+        lr = self.trainer.optimizers[0].param_groups[0]['lr']
+
+        self.log('lr', lr, on_step=True, prog_bar=True, logger=True)
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.print("train_loss", loss)
+
+        if self.indx % 10 == 0:
+            self.print("train_loss", loss)
+
+            self.indx = self.indx+1
+
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         preds = self(x)
         loss = self.criterion(preds, y)
+
         self.log("val_loss", loss)
-        print("val_loss", loss)
+        if self.indx % 10 == 0:
+            print("val_loss", loss)
+            self.indx = self.indx+1
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.params['lr'])

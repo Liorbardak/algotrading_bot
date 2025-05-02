@@ -5,7 +5,8 @@ Best so far :
 Slightly better than snp (~10%) , not good and stable enough
 buy:
 - Long Trend is upwards/ not going down:
-    - the slop of ma_150 is positive
+    - the slop of ma_150 is positive (in window 50 days it in  raise at least 0.1%  )
+     - as primer clue  - inferior results
 - Not too much fluctuations - limit the effect of delayed trade commands:
      - threshold on zero crossing of bandpass 20-50
 -  ma20 is crossing ma50 upward
