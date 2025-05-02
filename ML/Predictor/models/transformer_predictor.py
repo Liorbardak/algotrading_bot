@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 class TransformerPredictorModel(nn.Module):
-    def __init__(self, input_dim=5, d_model=64, nhead=4, num_layers=2, dropout=0.0, seq_len=60, pred_len=20):
+    def __init__(self, input_dim=5, d_model=64, nhead=4, num_layers=2, dropout=0.0, pred_len=20):
         super().__init__()
         self.embedding = nn.Linear(input_dim, d_model)
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True)

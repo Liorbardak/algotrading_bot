@@ -17,7 +17,8 @@ from lightingwraper import  LitStockPredictor
 checkpoint_path = "C:/Users/dadab/projects/algotrading/training/test/checkpoints"
 datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
 outputdir = 'C:/Users/dadab/projects/algotrading/data/training/predictions'
-dbname = 'train_stocks.csv'
+#dbname = 'train_stocks.csv'
+dbname = 'val_stocks.csv'
 
 
 os.makedirs(outputdir, exist_ok=True)
@@ -33,7 +34,8 @@ model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load)
 model.to(device)
 model.eval()
 batch_size = 64
-inference_loader  = get_loader(datadir, dbname, max_prediction_length = 20 , max_encoder_length = 60 , batch_size=batch_size , shuffle=False )
+max_prediction_length = 15
+inference_loader  = get_loader(datadir, dbname, max_prediction_length = max_prediction_length , max_encoder_length = 60 , batch_size=batch_size , shuffle=False )
 
 
 predictions = []
@@ -47,21 +49,20 @@ with torch.no_grad():
         output_cpu = output.cpu().numpy()
         loss = np.mean((output_cpu-output_cpu_gt)**2)
         print(loss)
-        for ind in range(len(input_cpu)):
-            plt.figure()
-            plt.plot(input_cpu[ind,:,3])
+        if(bidx > 40):
+            #for ind in range(len(input_cpu)):
+            for idx in range(1):
+                dat = inference_loader.dataset.get_meta(idx + bidx)
+                plt.figure()
+                plt.plot(input_cpu[idx,:,3])
 
-            plt.plot(np.arange(len(input_cpu[ind,:,3]),len(input_cpu[ind,:,3]) + len(output_cpu_gt[ind])), output_cpu_gt[ind])
-            plt.plot(np.arange(len(input_cpu[ind, :, 3]), len(input_cpu[ind, :, 3]) + len(output_cpu_gt[ind])),
-                     output_cpu_gt[ind])
-            plt.plot(np.arange(len(input_cpu[ind, :, 3]), len(input_cpu[ind, :, 3]) + len(output_cpu_gt[ind])),
-                     output_cpu[ind])
-
-        plt.show()
-
-
-
-        # sort out , renormalize
+                plt.plot(np.arange(len(input_cpu[idx,:,3]),len(input_cpu[idx,:,3]) + len(output_cpu_gt[idx])), output_cpu_gt[idx])
+                plt.plot(np.arange(len(input_cpu[idx, :, 3]), len(input_cpu[idx, :, 3]) + len(output_cpu_gt[idx])),
+                         output_cpu_gt[idx])
+                plt.plot(np.arange(len(input_cpu[idx, :, 3]), len(input_cpu[idx, :, 3]) + len(output_cpu_gt[idx])),
+                         output_cpu[idx])
+                plt.title(dat['stock'])
+      # sort out , renormalize
         for idx in np.arange(output.shape[0]):
             # get the output meta data
             dat = inference_loader.dataset.get_meta(idx+bidx)
@@ -71,6 +72,6 @@ with torch.no_grad():
                 dat['pred' + str(i)] = output_cpu[idx, i] / normfact
             predictions.append(dat)
         bidx = bidx + output.shape[0]
-
+    plt.show()
 df = pd.DataFrame(predictions)
 df.to_csv(os.path.join(outputdir,'predictions.csv'))

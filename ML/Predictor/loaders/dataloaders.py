@@ -49,5 +49,5 @@ def get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 , 
 def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length = 60 , batch_size=64, shuffle=True , output_file = None ):
     tr_data = pd.read_csv(os.path.join(datadir, filename))
     dataset = StockDataset(tr_data ,  seq_len=max_encoder_length, pred_len=max_prediction_length)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=15 , persistent_workers=True)
     return loader

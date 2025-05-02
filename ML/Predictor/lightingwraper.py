@@ -4,8 +4,9 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 from models.transformer_predictor import TransformerPredictorModel
+from models.stockpredictor import StockTransformer
 class LitStockPredictor(pl.LightningModule):
-    def __init__(self , model=TransformerPredictorModel() ,  params  = {'lr' : 1e-4 ,'loss': nn.MSELoss()}):
+    def __init__(self , model=TransformerPredictorModel(pred_len=15) ,  params  = {'lr' : 1e-3 ,'loss': nn.MSELoss()}):
         super().__init__()
         self.model = model
         self.criterion = params['loss']
@@ -23,10 +24,10 @@ class LitStockPredictor(pl.LightningModule):
         self.log('lr', lr, on_step=True, prog_bar=True, logger=True)
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-        if self.indx % 10 == 0:
-            self.print("train_loss", loss)
-
-            self.indx = self.indx+1
+        # if self.indx % 10 == 0:
+        #     self.print("train_loss", loss)
+        #
+        #     self.indx = self.indx+1
 
         return loss
 
@@ -36,14 +37,14 @@ class LitStockPredictor(pl.LightningModule):
         loss = self.criterion(preds, y)
 
         self.log("val_loss", loss)
-        if self.indx % 10 == 0:
-            print("val_loss", loss)
-            self.indx = self.indx+1
+        # if self.indx % 10 == 0:
+        #     print("val_loss", loss)
+        #     self.indx = self.indx+1
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.params['lr'])
         #scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, threshold =1e-3)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

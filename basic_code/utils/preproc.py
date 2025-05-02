@@ -199,8 +199,7 @@ def preprocess_data_to_train(inputdir : str, outputdir: str , stock_list_not_to_
 
 
 
-    # Save normalization
-    pickle.dump(norm_factors, open(os.path.join(outputdir, 'norm_factors.pkl'), 'wb'))
+
     # Save training
     train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
 
@@ -222,6 +221,8 @@ def preprocess_data_to_train(inputdir : str, outputdir: str , stock_list_not_to_
     # Save validation
     val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
 
+    # Save normalization
+    pickle.dump(norm_factors, open(os.path.join(outputdir, 'norm_factors.pkl'), 'wb'))
 
 if __name__ == "__main__":
     # datadir ='C:/Users\dadab\projects/algotrading\data/snp500'
@@ -235,11 +236,11 @@ if __name__ == "__main__":
 
 
     all_stock_dir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    datadir ='C:/Users/dadab/projects/algotrading/data/training/dbmedium'
+    datadir ='C:/Users/dadab/projects/algotrading/data/training/dbbig'
     #
     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
 
-    preprocess_data_to_train(all_stock_dir, datadir,sorted(snp['Ticker'].values),number_of_stocks_to_use=100)
+    preprocess_data_to_train(all_stock_dir, datadir,sorted(snp['Ticker'].values),number_of_stocks_to_use=1000)
 
     # create_training_set(all_stock_dir, datadir,sorted(snp['Ticker'].values) , 40)
 

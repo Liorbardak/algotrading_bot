@@ -12,7 +12,7 @@ sim.py
 
 On terminal 
 cd C:\Users\dadab\projects\algotrading\algotrading_bot
-.venv\Scripts\activate
+#.venv\Scripts\activate
 .venv2\Scripts\activate
 
 update code and run :
