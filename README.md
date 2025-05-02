@@ -19,4 +19,7 @@ update code and run :
 python  basic_code\sim.py
 or : 
 python  basic_code\sim_runner.py -i <inputdir> -o <output_dir> -b <bot list>
+
+Training
+python  ML\Predictor\run_training.py
       

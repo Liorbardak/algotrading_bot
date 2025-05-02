@@ -4,7 +4,6 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 from models.transformer_predictor import TransformerPredictorModel
-from models.stockpredictor import StockTransformer
 class LitStockPredictor(pl.LightningModule):
     def __init__(self , model=TransformerPredictorModel(pred_len=15) ,  params  = {'lr' : 1e-3 ,'loss': nn.MSELoss()}):
         super().__init__()
