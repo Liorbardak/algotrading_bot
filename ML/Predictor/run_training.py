@@ -4,11 +4,11 @@ import torch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-
+from pytorch_forecasting.metrics import QuantileLoss , SMAPE
 
 from loaders.dataloaders import get_loaders
-from lightingwraper import  LitStockPredictor
-
+from models.transformer_predictor import  LitStockPredictor
+from models.tft_predictor import  TFTLightningWrapper
 
 def run_training(datadir : str ,outdir: str , max_epochs=2 ,ckpt_path=None):
     checkpoints_path = os.path.join(outdir, 'checkpoints')
@@ -29,12 +29,30 @@ def run_training(datadir : str ,outdir: str , max_epochs=2 ,ckpt_path=None):
     max_prediction_length = 15
     data_step = 10 # take every step sample
     torch.set_float32_matmul_precision('medium')
+
+    ###################################################
     print('get loaders')
     train_loader, val_loader= get_loaders(datadir, max_prediction_length = max_prediction_length , max_encoder_length = 60
                                           , step=data_step  )
-    print('get predictor ')
-    model = LitStockPredictor()
-    #model = LitStockPredictor(model=TransformerPredictorModel(pred_len=max_prediction_length))
+    print('get model ')
+    #model = LitStockPredictor()
+
+    ###################################################
+
+    model = TFTLightningWrapper(
+        training_dataset=train_loader.dataset,
+        learning_rate=1e-3,
+        hidden_size=16,
+        attention_head_size=1,
+        dropout=0.1,
+        hidden_continuous_size=8,
+        output_size=1,
+        loss=SMAPE(reduction="mean"),
+        log_interval=10,
+        reduce_on_plateau_patience=4,
+    )
+
+   ###################################################################################################################
     print('start training')
     trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", devices=1 ,     callbacks=[checkpoint_callback],
                          default_root_dir=log_path,
@@ -42,12 +60,14 @@ def run_training(datadir : str ,outdir: str , max_epochs=2 ,ckpt_path=None):
                          num_sanity_val_steps=0,
                          fast_dev_run=False,
                          )
+
+
     trainer.fit(model, train_loader, val_loader)
 
 
 
 if __name__ == "__main__":
-    datadir = 'C:/Users/dadab/projects/algotrading/data/training/good2'
+    datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
     outdir = "C:/Users/dadab/projects/algotrading/training/playground"
     run_training(datadir, outdir , max_epochs=300)
     # train_dataloader, val_dataloader, training = get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 ,     batch_size = 64 )

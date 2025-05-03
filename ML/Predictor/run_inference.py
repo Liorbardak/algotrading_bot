@@ -10,7 +10,8 @@ import torch
 #import pandas as pd
 #from models.transformer_predictor import TransformerPredictorModel
 from loaders.dataloaders import get_loader
-from lightingwraper import  LitStockPredictor
+from models.transformer_predictor import  LitStockPredictor
+#from lightingwraper import  LitStockPredictor
 #from models.transformer_predictor import TransformerPredictorModel
 
 
