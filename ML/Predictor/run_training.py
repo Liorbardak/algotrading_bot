@@ -42,8 +42,8 @@ def run_training(datadir : str ,outdir: str , max_epochs=2):
 
 
 if __name__ == "__main__":
-    datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbmedium'
-    outdir = "C:/Users/dadab/projects/algotrading/training/test_dbbig"
-    run_training(datadir, outdir , max_epochs=100)
+    datadir = 'C:/Users/dadab/projects/algotrading/data/training/allbad'
+    outdir = "C:/Users/dadab/projects/algotrading/training/test_bad"
+    run_training(datadir, outdir , max_epochs=50)
     # train_dataloader, val_dataloader, training = get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 ,     batch_size = 64 )
     # run_training(train_dataloader, val_dataloader, training)

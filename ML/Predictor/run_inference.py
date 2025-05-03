@@ -14,9 +14,13 @@ from lightingwraper import  LitStockPredictor
 #from models.transformer_predictor import TransformerPredictorModel
 
 
-checkpoint_path = "C:/Users/dadab/projects/algotrading/training/test/checkpoints"
-datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
+checkpoint_path = "C:/Users/dadab/projects/algotrading/training/test_good/checkpoints"
+#datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
+datadir = 'C:/Users/dadab/projects/algotrading/data/training/allbad'
+
 outputdir = 'C:/Users/dadab/projects/algotrading/data/training/predictions'
+
+
 #dbname = 'train_stocks.csv'
 dbname = 'val_stocks.csv'
 
@@ -35,7 +39,8 @@ model.to(device)
 model.eval()
 batch_size = 64
 max_prediction_length = 15
-inference_loader  = get_loader(datadir, dbname, max_prediction_length = max_prediction_length , max_encoder_length = 60 , batch_size=batch_size , shuffle=False )
+inference_loader  = get_loader(datadir, dbname, max_prediction_length = max_prediction_length , max_encoder_length = 60
+                               , batch_size=batch_size , shuffle=False, get_meta = True )
 
 
 predictions = []
@@ -48,20 +53,25 @@ with torch.no_grad():
         output = model(x)
         output_cpu = output.cpu().numpy()
         loss = np.mean((output_cpu-output_cpu_gt)**2)
-        print(loss)
-        if(bidx > 40):
-            #for ind in range(len(input_cpu)):
-            for idx in range(1):
-                dat = inference_loader.dataset.get_meta(idx + bidx)
-                plt.figure()
-                plt.plot(input_cpu[idx,:,3])
+        #print(loss)
+        if(loss > 1):
+            print(loss)
 
-                plt.plot(np.arange(len(input_cpu[idx,:,3]),len(input_cpu[idx,:,3]) + len(output_cpu_gt[idx])), output_cpu_gt[idx])
-                plt.plot(np.arange(len(input_cpu[idx, :, 3]), len(input_cpu[idx, :, 3]) + len(output_cpu_gt[idx])),
-                         output_cpu_gt[idx])
-                plt.plot(np.arange(len(input_cpu[idx, :, 3]), len(input_cpu[idx, :, 3]) + len(output_cpu_gt[idx])),
-                         output_cpu[idx])
-                plt.title(dat['stock'])
+            idx = np.argmax(np.mean((output_cpu - output_cpu_gt) ** 2, axis=1))
+            print(dat['stock'] , idx)
+
+            dat = inference_loader.dataset.get_meta(idx + bidx)
+            plt.figure()
+            plt.plot(input_cpu[idx,:,3],label='input')
+
+            #plt.plot(np.arange(len(input_cpu[idx,:,3]),len(input_cpu[idx,:,3]) + len(output_cpu_gt[idx])), output_cpu_gt[idx])
+            plt.plot(np.arange(len(input_cpu[idx, :, 3]), len(input_cpu[idx, :, 3]) + len(output_cpu_gt[idx])),
+                     output_cpu_gt[idx],label='gt')
+            plt.plot(np.arange(len(input_cpu[idx, :, 3]), len(input_cpu[idx, :, 3]) + len(output_cpu_gt[idx])),
+                     output_cpu[idx] ,label='out')
+            plt.title(dat['stock'])
+            plt.legend()
+            plt.show()
       # sort out , renormalize
         for idx in np.arange(output.shape[0]):
             # get the output meta data

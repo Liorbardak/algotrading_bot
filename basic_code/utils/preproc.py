@@ -157,13 +157,26 @@ def preprocess_data_to_train(inputdir : str, outputdir: str , stock_list_not_to_
     :param inputdir:
     :param outputdir:
     :param stock_list_not_to_use:
-    :param min_length: dont take stocks with too little data
+    :param min_length: do not take stocks with too little data
     :return:
     '''
     os.makedirs(outputdir, exist_ok=True)
-    # get all stocks that can be trained on
+    not_to_take = np.array(['MTNB','VEON','AVXL','HITI','QXO' , 'ANNAW'])
+    # ref1 = pd.read_csv('C:/Users/dadab\projects/algotrading\data/training/dbmed1/train_stocks.csv')
+    # names1 = list(set(ref1.stock_name))
+    #
+    # ref2 = pd.read_csv('C:/Users/dadab\projects/algotrading\data/training/dbmed2/train_stocks.csv')
+    #
+    # names2 = list(set(ref2.stock_name))
+    # all_stocks = np.array(names1 + names2)
+
+    # Get all stocks that can be trained on
     all_stocks = np.array([d for d in os.listdir(inputdir) if
                            (os.path.isdir(os.path.join(all_stock_dir, d)) & (d not in stock_list_not_to_use))])
+
+    # remove bad stocks
+    all_stocks = np.array(list(set(all_stocks) - set(not_to_take)))
+    # randomize
     all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
 
     if number_of_stocks_to_use is not None:
@@ -178,6 +191,8 @@ def preprocess_data_to_train(inputdir : str, outputdir: str , stock_list_not_to_
     train_stocks = all_stocks[:int(len(all_stocks)*0.7)]
     val_stocks = all_stocks[int(len(all_stocks)*0.7):]
 
+    train_stocks = ['MTNB','VEON','AVXL','HITI','QXO' , 'ANNAW']
+    val_stocks  =  ['MTNB']
     dfs = []
     for stock_name in train_stocks:
         df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
@@ -225,6 +240,7 @@ def preprocess_data_to_train(inputdir : str, outputdir: str , stock_list_not_to_
     pickle.dump(norm_factors, open(os.path.join(outputdir, 'norm_factors.pkl'), 'wb'))
 
 if __name__ == "__main__":
+    np.random.seed(42)
     # datadir ='C:/Users\dadab\projects/algotrading\data/snp500'
     #
     # snp = pd.read_csv('C:/Users\dadab\projects/algotrading\data/tickers\sp500_stocks.csv')
@@ -236,11 +252,11 @@ if __name__ == "__main__":
 
 
     all_stock_dir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    datadir ='C:/Users/dadab/projects/algotrading/data/training/dbbig'
+    datadir ='C:/Users/dadab/projects/algotrading/data/training/allbad'
     #
     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
 
-    preprocess_data_to_train(all_stock_dir, datadir,sorted(snp['Ticker'].values),number_of_stocks_to_use=1000)
+    preprocess_data_to_train(all_stock_dir, datadir,sorted(snp['Ticker'].values),number_of_stocks_to_use=200)
 
     # create_training_set(all_stock_dir, datadir,sorted(snp['Ticker'].values) , 40)
 

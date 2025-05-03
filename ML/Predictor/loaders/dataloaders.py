@@ -47,8 +47,11 @@ def get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 , 
 
     return train_loader, val_loader
 
-def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length = 60 , batch_size=64,step=1, shuffle=True):
+def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length = 60 , batch_size=64,step=1, shuffle=True, get_meta = True):
     tr_data = pd.read_csv(os.path.join(datadir, filename))
-    dataset = StockDataset(tr_data ,  seq_len=max_encoder_length, pred_len=max_prediction_length,step=step)
+    import pylab as plt
+    plt.plot(np.diff(tr_data.close.values))
+    plt.show()
+    dataset = StockDataset(tr_data ,  seq_len=max_encoder_length, pred_len=max_prediction_length,step=step , get_meta=get_meta)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return loader
