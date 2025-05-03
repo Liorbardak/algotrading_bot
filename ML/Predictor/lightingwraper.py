@@ -23,11 +23,6 @@ class LitStockPredictor(pl.LightningModule):
         self.log('lr', lr, on_step=True, prog_bar=True, logger=True)
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-        # if self.indx % 10 == 0:
-        #     self.print("train_loss", loss)
-        #
-        #     self.indx = self.indx+1
-
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -36,9 +31,7 @@ class LitStockPredictor(pl.LightningModule):
         loss = self.criterion(preds, y)
 
         self.log("val_loss", loss)
-        # if self.indx % 10 == 0:
-        #     print("val_loss", loss)
-        #     self.indx = self.indx+1
+
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.params['lr'])

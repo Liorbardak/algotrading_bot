@@ -15,9 +15,8 @@ from pytorch_forecasting.metrics import MAE , QuantileLoss
 
 def get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 ,     batch_size = 64 ):
     data = pd.read_csv(os.path.join(datadir, 'train_stocks.csv'))
-    #data["time_idx"] = data["date"].dt.year * * + data["date"].dt.monthdata["time_idx"] -= data["time_idx"].min()
 
-
+    data['log_close'] = np.log(data['close']+1)
     training_cutoff = data["time_idx"].max() - max_prediction_length
 
     training = TimeSeriesDataSet(

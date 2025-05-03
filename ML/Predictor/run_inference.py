@@ -15,8 +15,13 @@ from lightingwraper import  LitStockPredictor
 
 
 checkpoint_path = "C:/Users/dadab/projects/algotrading/training/test_good/checkpoints"
+checkpoint_path = "C:/Users/dadab/projects/algotrading/training/playground/checkpoints"
+checkpoint_to_load = os.path.join(checkpoint_path ,"best-checkpoint.ckpt")
+#checkpoint_path = "C:/Users/dadab\projects/algotrading/training/omit_bad/checkpoints"
+#checkpoint_to_load = os.path.join(checkpoint_path ,"best-checkpoint-v1.ckpt")
+
 #datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
-datadir = 'C:/Users/dadab/projects/algotrading/data/training/allbad'
+datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbmed4'
 
 outputdir = 'C:/Users/dadab/projects/algotrading/data/training/predictions'
 
@@ -28,7 +33,7 @@ dbname = 'val_stocks.csv'
 os.makedirs(outputdir, exist_ok=True)
 
 # Load model
-checkpoint_to_load = os.path.join(checkpoint_path ,"best-checkpoint.ckpt")
+#checkpoint_to_load = os.path.join(checkpoint_path ,"best-checkpoint-v1.ckpt")
 # Get normalization factors
 normalization_factor = pickle.load(open(os.path.join(datadir,'norm_factors.pkl'),'rb'))
 
@@ -53,14 +58,15 @@ with torch.no_grad():
         output = model(x)
         output_cpu = output.cpu().numpy()
         loss = np.mean((output_cpu-output_cpu_gt)**2)
-        #print(loss)
-        if(loss > 1):
+        print(loss)
+        if(loss > 0):
             print(loss)
 
             idx = np.argmax(np.mean((output_cpu - output_cpu_gt) ** 2, axis=1))
-            print(dat['stock'] , idx)
+
 
             dat = inference_loader.dataset.get_meta(idx + bidx)
+
             plt.figure()
             plt.plot(input_cpu[idx,:,3],label='input')
 

@@ -20,15 +20,16 @@ class StockDataset(Dataset):
             stock_df = df[df['stock_name'] == ticker].copy()
 
             values = stock_df[['open', 'high', 'low', 'close', 'volume']].values
-
             for i in range(1,len(values) - seq_len - pred_len, step):
                 x = values[i:i + seq_len]
-                y = values[i + seq_len:i + seq_len + pred_len, 3]  # Close price
+                #y = values[i + seq_len:i + seq_len + pred_len, 3]  # prediction GT
+                y = values[i + seq_len-1:i + seq_len + pred_len-1, 3]  # prediction GT , with last sample
                 self.samples.append((torch.tensor(x, dtype=torch.float32),
                                      torch.tensor(y, dtype=torch.float32)))
                 if get_meta:
                      self.meta.append({'stock' : ticker,
-                                   'time_index': i + seq_len})
+                                   'time_index': i + seq_len-1})
+
     def __len__(self):
         return len(self.samples)
 
@@ -49,9 +50,6 @@ def get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 , 
 
 def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length = 60 , batch_size=64,step=1, shuffle=True, get_meta = True):
     tr_data = pd.read_csv(os.path.join(datadir, filename))
-    import pylab as plt
-    plt.plot(np.diff(tr_data.close.values))
-    plt.show()
     dataset = StockDataset(tr_data ,  seq_len=max_encoder_length, pred_len=max_prediction_length,step=step , get_meta=get_meta)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return loader
