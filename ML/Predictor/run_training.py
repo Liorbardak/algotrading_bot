@@ -1,5 +1,8 @@
+import json
 import os
 import sys
+from typing import Dict
+import pandas as pd
 import torch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytorch_lightning as pl
@@ -7,10 +10,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_forecasting.metrics import QuantileLoss , SMAPE
 
 from loaders.dataloaders import get_loaders
-from models.transformer_predictor import  LitStockPredictor
-from models.tft_predictor import  TFTLightningWrapper
+from models.get_models import get_model
 
-def run_training(datadir : str ,outdir: str , max_epochs=2 ,ckpt_path=None):
+def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
     checkpoints_path = os.path.join(outdir, 'checkpoints')
     log_path = os.path.join(outdir, 'logs')
     os.makedirs(checkpoints_path ,exist_ok=True)
@@ -26,33 +28,16 @@ def run_training(datadir : str ,outdir: str , max_epochs=2 ,ckpt_path=None):
         verbose=True
     )
 
-    max_prediction_length = 15
     data_step = 10 # take every step sample
     torch.set_float32_matmul_precision('medium')
 
-    ###################################################
     print('get loaders')
-    train_loader, val_loader= get_loaders(datadir, max_prediction_length = max_prediction_length , max_encoder_length = 60
-                                          , step=data_step  )
+    train_loader, val_loader= get_loaders(datadir, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
+                                          , step=data_step ,  loader_type = params['model_type'] )
+
     print('get model ')
-    #model = LitStockPredictor()
+    model = get_model(params['model_type'], params,train_loader.dataset )
 
-    ###################################################
-
-    model = TFTLightningWrapper(
-        training_dataset=train_loader.dataset,
-        learning_rate=1e-3,
-        hidden_size=16,
-        attention_head_size=1,
-        dropout=0.1,
-        hidden_continuous_size=8,
-        output_size=1,
-        loss=SMAPE(reduction="mean"),
-        log_interval=10,
-        reduce_on_plateau_patience=4,
-    )
-
-   ###################################################################################################################
     print('start training')
     trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", devices=1 ,     callbacks=[checkpoint_callback],
                          default_root_dir=log_path,
@@ -60,15 +45,14 @@ def run_training(datadir : str ,outdir: str , max_epochs=2 ,ckpt_path=None):
                          num_sanity_val_steps=0,
                          fast_dev_run=False,
                          )
-
-
     trainer.fit(model, train_loader, val_loader)
 
 
 
 if __name__ == "__main__":
+    params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
     datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
-    outdir = "C:/Users/dadab/projects/algotrading/training/playground"
-    run_training(datadir, outdir , max_epochs=300)
-    # train_dataloader, val_dataloader, training = get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 ,     batch_size = 64 )
-    # run_training(train_dataloader, val_dataloader, training)
+    outdir = "C:/Users/dadab/projects/algotrading/training/dbsmall_" + params['model_type']
+
+
+    run_training(datadir, outdir , max_epochs=50, params=params )

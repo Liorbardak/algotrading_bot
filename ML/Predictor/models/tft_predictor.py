@@ -17,20 +17,24 @@ from pytorch_forecasting.data import GroupNormalizer
 
 
 class TFTLightningWrapper(pl.LightningModule):
-    def __init__(self, training_dataset, **kwargs):
+    def __init__(self, training_dataset , **kwargs):
         super().__init__()
         self.save_hyperparameters(ignore=["training_dataset"])
         self.training_dataset = training_dataset
 
         # Store parameters for later use
-        self.learning_rate = kwargs.get("learning_rate", 0.01)
+        self.learning_rate = kwargs.get("learning_rate", 1e-3)
         self.reduce_on_plateau_patience = kwargs.get("reduce_on_plateau_patience", 0)
 
         # Create TFT model
-        self.tft = TemporalFusionTransformer.from_dataset(
-            training_dataset,
-            **kwargs
-        )
+        if training_dataset is not None:
+            self.tft = TemporalFusionTransformer.from_dataset(
+                training_dataset,
+                **kwargs
+            )
+
+    def predict(self, dataloader, **kwargs):
+        return self.tft.predict(dataloader, **kwargs)
 
     def forward(self, x):
         # Simple pass-through
@@ -66,7 +70,7 @@ class TFTLightningWrapper(pl.LightningModule):
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
                 mode="min",
-                factor=0.1,
+                factor=0.5,
                 patience=self.reduce_on_plateau_patience,
             )
             return {

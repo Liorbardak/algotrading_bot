@@ -1,0 +1,7 @@
+{
+  "model_type" : "ntft",
+  "lr" : 1e-3 ,
+  "ckpt_path_to_load": "",
+  "pred_len" : 15,
+  "max_encoder_length" : 60
+}

@@ -19,9 +19,9 @@ from pytorch_forecasting.data import GroupNormalizer
 
 class StockPricePredictor:
     def __init__(self,
-                 ticker_symbols: List[str],
-                 start_date: str,
-                 end_date: str,
+                 # ticker_symbols: List[str],
+                 # start_date: str,
+                 # end_date: str,
                  forecast_horizon: int = 5,
                  context_length: int = 30,
                  train_val_split: float = 0.8):
@@ -36,9 +36,9 @@ class StockPricePredictor:
             context_length: Number of days to use as context
             train_val_split: Ratio of training data vs validation data
         """
-        self.ticker_symbols = ticker_symbols
-        self.start_date = start_date
-        self.end_date = end_date
+        # self.ticker_symbols = ticker_symbols
+        # self.start_date = start_date
+        # self.end_date = end_date
         self.forecast_horizon = forecast_horizon
         self.context_length = context_length
         self.train_val_split = train_val_split
@@ -56,108 +56,110 @@ class StockPricePredictor:
         Fetch stock price data using yfinance API
         """
         # Download stock data
-        all_data = []
-        inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-        for ticker in self.ticker_symbols:
-            try:
+        # all_data = []
+        # inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
+        # for ticker in self.ticker_symbols:
+        #     try:
+        #
+        #         #stock_data = yf.download(ticker, start=self.start_date, end=self.end_date)
+        #         stock_data =  pd.read_excel(os.path.join(inputdir, ticker, 'stockPrice.xlsx'), engine='openpyxl')
+        #         # Extract relevant columns and prepare data
+        #         stock_data.rename(columns={'1. open':'open', '2. high': 'high', '3. low' : 'low' ,'close': 'close' , '5. volume' : 'volume', 'Date' : 'date'}, inplace=True)
+        #         df = stock_data[['open', 'high', 'low', 'close', 'volume','date']].copy()
+        #
+        #         # # Calculate additional technical indicators
+        #         # # Moving averages
+        #         # df['MA5'] = df['Close'].rolling(window=5).mean()
+        #         # df['MA20'] = df['Close'].rolling(window=20).mean()
+        #         #
+        #         # # RSI (Relative Strength Index)
+        #         # delta = df['Close'].diff()
+        #         # gain = delta.where(delta > 0, 0).fillna(0)
+        #         # loss = -delta.where(delta < 0, 0).fillna(0)
+        #         # avg_gain = gain.rolling(window=14).mean()
+        #         # avg_loss = loss.rolling(window=14).mean()
+        #         # rs = avg_gain / avg_loss
+        #         # df['RSI'] = 100 - (100 / (1 + rs))
+        #         #
+        #         # # MACD (Moving Average Convergence Divergence)
+        #         # df['EMA12'] = df['Close'].ewm(span=12, adjust=False).mean()
+        #         # df['EMA26'] = df['Close'].ewm(span=26, adjust=False).mean()
+        #         # df['MACD'] = df['EMA12'] - df['EMA26']
+        #         # df['Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        #         #
+        #         # # Bollinger Bands
+        #         # df['BB_Middle'] = df['Close'].rolling(window=20).mean()
+        #         # df['BB_Upper'] = df['BB_Middle'] + 2 * df['Close'].rolling(window=20).std()
+        #         # df['BB_Lower'] = df['BB_Middle'] - 2 * df['Close'].rolling(window=20).std()
+        #         #
+        #         # # Percentage price change
+        #         # df['Price_Change'] = df['Close'].pct_change() * 100
+        #
+        #         # Reset index to make the date a column
+        #         df.reset_index(inplace=True)
+        #
+        #         # Add ticker column
+        #         df['stock_name'] = ticker
+        #
+        #         # Add to list
+        #         all_data.append(df)
+        #
+        #         print(f"Successfully downloaded data for {ticker}")
+        #     except Exception as e:
+        #         print(f"Error downloading data for {ticker}: {e}")
+        #
+        # # Combine all data
+        # self.data = pd.concat(all_data, ignore_index=True)
+        # #self.data.rename(columns={'Date': 'date'}, inplace=True)
+        #
+        # # Fill NA values
+        # self.data = self.data.fillna(0)
+        #
+        # # Create time index - ensure each ticker starts from 0
+        # self.data = self.data.sort_values(['stock_name', 'date'])
+        # self.data['time_idx'] = self.data.groupby('stock_name').cumcount()
+        #
+        #
+        # # Drop rows with missing values
+        # self.data = self.data.dropna()
+        #
+        # print(f"Data shape: {self.data.shape}")
 
-                #stock_data = yf.download(ticker, start=self.start_date, end=self.end_date)
-                stock_data =  pd.read_excel(os.path.join(inputdir, ticker, 'stockPrice.xlsx'), engine='openpyxl')
-                # Extract relevant columns and prepare data
-                stock_data.rename(columns={'1. open':'Open', '2. high': 'High', '3. low' : 'Low' ,'close': 'Close' , '5. volume' : 'Volume'}, inplace=True)
-                df = stock_data[['Open', 'High', 'Low', 'Close', 'Volume','Date']].copy()
-
-                # Calculate additional technical indicators
-                # Moving averages
-                df['MA5'] = df['Close'].rolling(window=5).mean()
-                df['MA20'] = df['Close'].rolling(window=20).mean()
-
-                # RSI (Relative Strength Index)
-                delta = df['Close'].diff()
-                gain = delta.where(delta > 0, 0).fillna(0)
-                loss = -delta.where(delta < 0, 0).fillna(0)
-                avg_gain = gain.rolling(window=14).mean()
-                avg_loss = loss.rolling(window=14).mean()
-                rs = avg_gain / avg_loss
-                df['RSI'] = 100 - (100 / (1 + rs))
-
-                # MACD (Moving Average Convergence Divergence)
-                df['EMA12'] = df['Close'].ewm(span=12, adjust=False).mean()
-                df['EMA26'] = df['Close'].ewm(span=26, adjust=False).mean()
-                df['MACD'] = df['EMA12'] - df['EMA26']
-                df['Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
-
-                # Bollinger Bands
-                df['BB_Middle'] = df['Close'].rolling(window=20).mean()
-                df['BB_Upper'] = df['BB_Middle'] + 2 * df['Close'].rolling(window=20).std()
-                df['BB_Lower'] = df['BB_Middle'] - 2 * df['Close'].rolling(window=20).std()
-
-                # Percentage price change
-                df['Price_Change'] = df['Close'].pct_change() * 100
-
-                # Reset index to make the date a column
-                df.reset_index(inplace=True)
-
-                # Add ticker column
-                df['ticker'] = ticker
-
-                # Add to list
-                all_data.append(df)
-
-                print(f"Successfully downloaded data for {ticker}")
-            except Exception as e:
-                print(f"Error downloading data for {ticker}: {e}")
-
-        # Combine all data
-        self.data = pd.concat(all_data, ignore_index=True)
-        self.data.rename(columns={'Date': 'date'}, inplace=True)
-
-        # Fill NA values
-        self.data = self.data.fillna(0)
-
-        # Create time index - ensure each ticker starts from 0
-        self.data = self.data.sort_values(['ticker', 'date'])
-        self.data['time_idx'] = self.data.groupby('ticker').cumcount()
-
-
-        # Drop rows with missing values
-        self.data = self.data.dropna()
-
-        print(f"Data shape: {self.data.shape}")
+        #self.data = pd.read_csv("C:/Users/dadab/projects/algotrading/data/training/samllbb2/train_stocks.csv")
+        self.data= pd.read_csv("C:/Users/dadab/projects/algotrading/data/training/good1/train_stocks.csv")
 
     def prepare_datasets(self):
         """
         Prepare TimeSeriesDataSet for training and validation
         """
+
         # Determine cutoff point between train and validation
-        train_cutoff = int(len(self.data) * self.train_val_split)
+        train_cutoff = int(5000 * self.train_val_split)
 
         # Create training dataset
         self.training = TimeSeriesDataSet(
             data=self.data[:train_cutoff],
             time_idx="time_idx",
-            target="Close",
-            group_ids=["ticker"],
+            target="close",
+            group_ids=["stock_name"],
             min_encoder_length=self.context_length // 2,  # Minimum history length
             max_encoder_length=self.context_length,  # Maximum history length
             min_prediction_length=1,
             max_prediction_length=self.forecast_horizon,
-            static_categoricals=["ticker"],
+            static_categoricals=["stock_name"],
             time_varying_known_categoricals=[],
             time_varying_known_reals=["time_idx"],
             time_varying_unknown_categoricals=[],
             time_varying_unknown_reals=[
-                "Open", "High", "Low", "Close", "Volume",
-                "MA5", "MA20", "RSI", "MACD", "Signal", "BB_Middle",
-                "BB_Upper", "BB_Lower", "Price_Change"
+                "open", "high", "low", "close", "volume",
             ],
             target_normalizer=GroupNormalizer(
-                groups=["ticker"], transformation="softplus"
+                groups=["stock_name"], transformation="softplus"
             ),
             add_relative_time_idx=True,
             add_target_scales=True,
             add_encoder_length=True,
-            allow_missing_timesteps=True,  # Allow gaps in time series data
+            allow_missing_timesteps=True, # Allow gaps in time series data
         )
 
         # Create validation dataset using parameters from training dataset
@@ -189,7 +191,7 @@ class StockPricePredictor:
         """
 
         class TFTLightningWrapper(pl.LightningModule):
-            def __init__(self, training_dataset, **kwargs):
+            def __init__(self, training_dataset = None, **kwargs):
                 super().__init__()
                 self.save_hyperparameters(ignore=["training_dataset"])
                 self.training_dataset = training_dataset
@@ -199,10 +201,11 @@ class StockPricePredictor:
                 self.reduce_on_plateau_patience = kwargs.get("reduce_on_plateau_patience", 0)
 
                 # Create TFT model
-                self.tft = TemporalFusionTransformer.from_dataset(
-                    training_dataset,
-                    **kwargs
-                )
+                if training_dataset is not None:
+                    self.tft = TemporalFusionTransformer.from_dataset(
+                        training_dataset,
+                        **kwargs
+                    )
 
             def forward(self, x):
                 # Simple pass-through
@@ -299,7 +302,7 @@ class StockPricePredictor:
             max_epochs=50,
             # accelerator="gpu" if torch.cuda.is_available() else "cpu",
             # devices=1 if torch.cuda.is_available() else 0,
-            accelerator="cpu",
+            accelerator="gpu",
             devices= 1,
             gradient_clip_val=0.1,
             callbacks=[early_stopping, checkpoint_callback],
@@ -530,17 +533,17 @@ class StockPricePredictor:
 # Example usage
 if __name__ == "__main__":
     # Define parameters
-    ticker_symbols = ["AAPL", "AA", "AEP", "FRME"]
-    start_date = "2018-01-01"
-    end_date = "2023-01-01"
+    # ticker_symbols = ["AAPL", "AA", "AEP", "FRME"]
+    # start_date = "2018-01-01"
+    # end_date = "2023-01-01"
     forecast_horizon = 5
     context_length = 30
 
     # Initialize and run the stock price predictor
     predictor = StockPricePredictor(
-        ticker_symbols=ticker_symbols,
-        start_date=start_date,
-        end_date=end_date,
+        # ticker_symbols=ticker_symbols,
+        # # start_date=start_date,
+        # # end_date=end_date,
         forecast_horizon=forecast_horizon,
         context_length=context_length
     )

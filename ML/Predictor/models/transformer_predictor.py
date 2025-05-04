@@ -32,8 +32,6 @@ class LitStockPredictor(pl.LightningModule):
         self.criterion = params['loss']
         self.params = params
         self.indx = 0
-        self.save_hyperparameters()
-
     def forward(self, x):
         return self.model(x)
 

@@ -107,7 +107,7 @@ def run_trade_sim(datadir : str ,
 
 if __name__ == "__main__":
     datadir = 'C:/Users/dadab/projects/algotrading/data/snp500'
-    results_dir =  "C:/Users/dadab/projects/algotrading/results/playground"
+    results_dir =  "C:/Users/dadab/projects/algotrading/results/ToKeep"
 
 
     #
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
     #               trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
     run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[ CharnyBotV4()], do_report=False)
+                  trade_bots=[ CharnyBotBase(),CharnyBotV2() ], do_report=False, do_run=False)
     # run_trade_sim(datadir=datadir, results_dir=results_dir,
     #               trade_bots=[CharnyBotV2() , CharnyBotV4()], do_report=False , do_run = False)
 
