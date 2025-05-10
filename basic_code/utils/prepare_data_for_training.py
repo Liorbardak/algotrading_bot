@@ -322,25 +322,40 @@ def create_set_from_from_snp(inputdir : str , outputdir:str,    split_date_facto
     # randomize
     all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
 
-    # run smoothing on all data - TODO - remove
 
-
-    # Split train -val
     train_stocks = all_stocks[:int(len(all_stocks)*val_train_split)]
     val_stocks = all_stocks[int(len(all_stocks)*val_train_split):]
 
 
     #Get the train + val data on training dates
     train_df, train_norm_factors,_  = get_normalized_training_data(inputdir, train_stocks , start_train_date , end_train_date )
+    val_df, val_norm_factors ,_ = get_normalized_training_data(inputdir, val_stocks, start_train_date, end_train_date)
+    test_df, test_norm_factors ,test_df_orig = get_normalized_training_data(inputdir, train_stocks , start_test_date , end_test_date )
+    ########################## TODO - remove ###################################################
+    # OVERFIT
+    def get_ma(df,ks):
+        ndf = []
+        for n, sdf in df.groupby('ticker'):
+            for k in ks:
+                sdf[k] = sdf[k].rolling(window=20).mean().dropna()
+            ndf.append(sdf)
+        return pd.concat(ndf).dropna()
+
+    train_df = get_ma(train_df, ['close', 'open', 'high', 'low', 'volume'])
+    train_df = train_df[train_df.ticker == train_df.ticker.values[0]]
+    val_df = train_df
+    test_df = get_ma(test_df, ['close', 'open', 'high', 'low', 'volume'])
+    test_df_orig = get_ma(test_df_orig, ['close', 'open', 'high', 'low', 'volume'])
+
+
+    #############################################################################
+
     train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
     pickle.dump(train_norm_factors, open(os.path.join(outputdir, 'train_stocks_norm_factors.pkl'), 'wb'))
 
-    val_df, val_norm_factors ,_ = get_normalized_training_data(inputdir, val_stocks, start_train_date, end_train_date)
     val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
     pickle.dump(val_norm_factors, open(os.path.join(outputdir, 'val_stocks_norm_factors.pkl'), 'wb'))
 
-    #Get the test data on test dates
-    test_df, test_norm_factors ,test_df_orig = get_normalized_training_data(inputdir, train_stocks , start_test_date , end_test_date )
     test_df.to_csv(os.path.join(outputdir, 'test_stocks.csv'))
     test_df_orig.to_csv(os.path.join(outputdir, 'test_df_orig.csv'))
     pickle.dump(test_norm_factors, open(os.path.join(outputdir, 'test_stocks_norm_factors.pkl'), 'wb'))
@@ -351,6 +366,6 @@ def create_set_from_from_snp(inputdir : str , outputdir:str,    split_date_facto
 if __name__ == "__main__":
     np.random.seed(42)
     inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v0_ma20'
+    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_overfit'
     create_set_from_from_snp(inputdir, outputdir ,split_date_factor= 0.5 )
 

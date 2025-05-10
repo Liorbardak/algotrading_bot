@@ -28,7 +28,7 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoints_path,
-        monitor="val_loss",       # metric to track
+        monitor="val_loss",   #"val_loss", # metric to track
         mode="min",               # "min" if lower is better (e.g., loss)
         save_top_k=1,             # save only the best model
         filename="best-checkpoint",  # name of the file
@@ -60,9 +60,9 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
 if __name__ == "__main__":
     params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
 
-    ddname =  'snp_v0'
+    ddname =  'snp_overfit'
     datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
     outdir = f"C:/Users/dadab/projects/algotrading/training/{ddname}_{params['model_type']}"
 
 
-    run_training(datadir, outdir , max_epochs=200, params=params )
+    run_training(datadir, outdir , max_epochs=1200, params=params )

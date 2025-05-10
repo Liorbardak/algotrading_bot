@@ -62,7 +62,7 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
                 data=data,
                 time_idx="time_idx",
                 target="close",
-                group_ids=["ticker_id"],
+                group_ids=["stock_id"],
                 min_encoder_length=max_encoder_length,  # Minimum history length
                 max_encoder_length=max_encoder_length,  # Maximum history length
                 min_prediction_length=1,
@@ -75,7 +75,7 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
                     "open", "high", "low", "close", "volume",
                 ],
                 target_normalizer=GroupNormalizer(
-                    groups=["ticker_id"], transformation="softplus"
+                    groups=["stock_id"], transformation="softplus"
                 ),
                 add_relative_time_idx=True,
                 add_target_scales=True,

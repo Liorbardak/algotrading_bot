@@ -15,7 +15,7 @@ from pytorch_forecasting import TimeSeriesDataSet
 from pytorch_forecasting.models import TemporalFusionTransformer
 from loaders.dataloaders import get_loaders
 from models.get_models import get_model
-
+from torch import nn
 
 
 
@@ -37,13 +37,14 @@ def run_inference(datadir, outputdir , checkpoint_to_load, params ,display = Fal
     # Combine with the original data
 
     # Get the original stock prices
-    df = pd.read_csv(os.path.join(db_path,'test_df_orig.csv'))
+    df = pd.read_csv(os.path.join(outputdir,'test_df_orig.csv'))
+
     # Get the predicted stock prices , just calculated here
-    pred_df = pd.read_csv(os.path.join(outdir,'predictions.csv'))
+    pred_df = pd.read_csv(os.path.join(outputdir,'predictions.csv'))
 
     # merge
     merged_df = pd.merge(df, pred_df, on=['ticker','date'], how='outer')
-    merged_df.to_csv(os.path.join(outdir,'ticker_data.csv'))
+    merged_df.to_csv(os.path.join(outputdir,'ticker_data.csv'))
 
 
 
@@ -68,23 +69,28 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
     inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
                                    , batch_size=batch_size , shuffle=False, get_meta = True , loader_type = params['model_type'] )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #device ="cpu"
     model = get_model(params['model_type'], params,inference_loader.dataset , checkpoint_to_load )
     model.to(device)
     model.eval()
+    criterion = nn.L1Loss()
     rows = []
     with torch.no_grad():
         bidx = 0
         for x, y in inference_loader:
-            input_cpu = x.numpy()
-            output_cpu_gt =  y.numpy()
-            x = x.to(device)
-            output = model(x)
-            output_cpu = output.cpu().numpy()
-            loss = np.mean((output_cpu-output_cpu_gt)**2)
+            output = model(x.to(device))
+            loss = criterion(y.to(device), output).cpu().numpy()
 
+            input_cpu = x.cpu().numpy()
+            output_cpu_gt =  y.cpu().numpy()
+
+            output_cpu = output.cpu().numpy()
+
+
+            print(loss)
             # Store predictions
             ids_to_show = [np.argmax(np.mean((output_cpu - output_cpu_gt) ** 2, axis=1))]  # worth sample
-            # ids_to_show = range(output_cpu.shape[0])
+            #ids_to_show = range(output_cpu.shape[0])
 
             for idx in range(output_cpu.shape[0]):
 
@@ -98,7 +104,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
                 rows.append(r)
 
                 if(display) & (idx in ids_to_show) :
-                    print(loss)
+
 
                     plt.figure()
                     plt.plot(input_cpu[idx,:,3],label='input')
@@ -186,22 +192,16 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
 def main():
     params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
 
-    dbtrain_name =  'snp_v0'
+    dbtrain_name =  'snp_overfit'
     db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'   #path of
     checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{dbtrain_name}_{params['model_type']}"
     outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtrain_name}_{params['model_type']}"
     os.makedirs(outdir, exist_ok=True)
 
     checkpoint_to_load = os.path.join(checkpoint_path,"checkpoints", "best-checkpoint.ckpt") # Note - dont forget to change the checkpoint name
-    run_inference(db_path, outdir , checkpoint_to_load, params , display = False )
+    run_inference(db_path, outdir , checkpoint_to_load, params , display = True , dbname ='train_stocks.csv')
 
 
 if __name__ == "__main__":
-
-    params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
-    dbtrain_name = 'snp_v0'
-    db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'   #path of
-    checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{dbtrain_name}_{params['model_type']}"
-    outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtrain_name}_{params['model_type']}"
 
     main()
