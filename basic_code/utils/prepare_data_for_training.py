@@ -5,6 +5,7 @@ import os
 import shutil
 from typing import Dict , List
 from datetime import datetime
+from copy import deepcopy
 import pylab as plt
 
 def detect_stocks_with_jumps(inputdir : str,stocks_names: np.array,th = 0.7)->List:
@@ -66,7 +67,13 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
                               min_length : int = 150 ,     
                            ):
     '''
-    
+    Prepare data for training - sort out, normalize , rename , add features ...
+    :param inputdir: directory of the raw ticker data
+    :param stock_list_to_use:
+    :param minDate:
+    :param maxDate:
+    :param min_length:
+    :return: training data , normalization factors , data without normalization
     '''
 
 
@@ -75,6 +82,7 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
     norm_factors['first_close_scale'] = 1.0 # the scale is determined by the first close value
     
     dfs = []
+    dfs_raw = []
     for i, stock_name in enumerate(stock_list_to_use):
         df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
 
@@ -85,11 +93,21 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
             datetime.strptime(minDate, "%Y-%m-%d")
 
             df = df[df['Date'].between(min_date, max_date)]
+
         if (len(df) < min_length):
             continue
+        #Store non-normalized data
+        df_raw = deepcopy(df)
+        df_raw['name'] = stock_name
+        dfs_raw.append(df_raw)
+
         df, normFact = re_arange_df(df, stock_name, i, norm_factors)
         dfs.append(df)
         norm_factors[stock_name + 'normFact'] = normFact
+
+    # Get the raw (non-normalized) data
+    raw_df = pd.concat(dfs_raw, ignore_index=True)
+
 
     train_df = pd.concat(dfs, ignore_index=True)
     # Fill NA values
@@ -109,7 +127,7 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
         norm_factors[k + 'scale'] = 1.0 / (np.max(train_df['volume'].values) - norm_factors[k + 'offset'])
         train_df[k] = (train_df[k] - norm_factors[k + 'offset']) * norm_factors[k + 'scale']
         
-    return train_df, norm_factors
+    return train_df, norm_factors, raw_df
 
 
 
@@ -297,17 +315,18 @@ def create_set_from_from_snp():
 
 
     #Get the train + val data on training dates
-    train_df, train_norm_factors = get_normalized_training_data(inputdir, train_stocks , start_train_date , end_train_date )
+    train_df, train_norm_factors,_  = get_normalized_training_data(inputdir, train_stocks , start_train_date , end_train_date )
     train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
     pickle.dump(train_norm_factors, open(os.path.join(outputdir, 'train_stocks_norm_factors.pkl'), 'wb'))
 
-    val_df, val_norm_factors = get_normalized_training_data(inputdir, val_stocks, start_train_date, end_train_date)
+    val_df, val_norm_factors ,_ = get_normalized_training_data(inputdir, val_stocks, start_train_date, end_train_date)
     val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
     pickle.dump(val_norm_factors, open(os.path.join(outputdir, 'val_stocks_norm_factors.pkl'), 'wb'))
 
     #Get the test data on test dates
-    test_df, test_norm_factors = get_normalized_training_data(inputdir, train_stocks , start_test_date , end_test_date )
+    test_df, test_norm_factors ,test_df_orig = get_normalized_training_data(inputdir, train_stocks , start_test_date , end_test_date )
     test_df.to_csv(os.path.join(outputdir, 'test_stocks.csv'))
+    test_df_orig.to_csv(os.path.join(outputdir, 'test_df_orig.csv'))
     pickle.dump(test_norm_factors, open(os.path.join(outputdir, 'test_stocks_norm_factors.pkl'), 'wb'))
 
 

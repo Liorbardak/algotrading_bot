@@ -34,6 +34,18 @@ def run_inference(datadir, outputdir , checkpoint_to_load, params ,display = Fal
     else:
         run_inference_simple(datadir, outputdir , checkpoint_to_load, params, display = display ,  dbname = dbname )
 
+    # Combine with the original data
+
+    # Get the original stock prices
+    df = pd.read_csv(os.path.join(db_path,'test_df_orig.csv'))
+    # Get the predicted stock prices , just calculated here
+    pred_df = pd.read_csv(os.path.join(outdir,'predictions.csv'))
+
+    # merge
+    merged_df = pd.merge(df, pred_df, on=['name','Date'], how='outer')
+    merged_df.to_csv(os.path.join(outdir,'ticker_data.csv'))
+
+
 def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,display = False , dbname = 'train_stocks.csv'):
     '''
     Run inference and save results
@@ -84,7 +96,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
                     r['pred' + str(i)] = pred / normfact
                 rows.append(r)
 
-                if(display) & idx in ids_to_show :
+                if(display) & (idx in ids_to_show) :
                     print(loss)
 
 
@@ -99,7 +111,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
                     plt.title(data['stock'])
                     plt.legend()
                     plt.show()
-
+            bidx += batch_size
 
 
     pd.DataFrame(rows).to_csv(os.path.join(outputdir,params['model_type'] + 'predictions.csv'))
@@ -159,33 +171,42 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
             r['pred' + str(i)] = pred / normfact
         rows.append(r)
         if(display):
+            if time_idx[0] % 20 == 0:
+                # Get the data before the prediction time (for display )
+                prev_idx =np.arange(time_idx[0]-20,time_idx[0])
+                prev_v = []
+                for ix in prev_idx:
+                    prev_v.append(stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == ix)]['close'])
 
-            # Get the data before the prediction time (for display )
-            prev_idx =np.arange(time_idx[0]-20,time_idx[0])
-            prev_v = []
-            for ix in prev_idx:
-                prev_v.append(stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == ix)]['close'])
-
-            plt.figure()
-            plt.plot(time_idx,  prediction ,label='prediction')
-            plt.plot(prev_idx, prev_v, label='before')
-            plt.title(f' {stock_name}  {time_idx[0]}')
-            plt.show()
-
-
-    pd.DataFrame(rows).to_csv(os.path.join(outputdir,params['model_type'] + 'predictions.csv'))
+                plt.figure()
+                plt.plot(time_idx,  prediction ,label='prediction')
+                plt.plot(prev_idx, prev_v, label='before')
+                plt.title(f' {stock_name}  {time_idx[0]}')
+                plt.show()
 
 
-if __name__ == "__main__":
+    pd.DataFrame(rows).to_csv(os.path.join(outputdir,'predictions.csv'))
+
+def main():
     params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
 
     dbtrain_name =  'snp_v0'
-    dbtest_name = 'snp_v0'
-    db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'
+    db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'   #path of
     checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{dbtrain_name}_{params['model_type']}"
-    outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtest_name}_{params['model_type']}"
+    outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtrain_name}_{params['model_type']}"
     os.makedirs(outdir, exist_ok=True)
 
     #checkpoint_to_load = os.path.join(outdir,"checkpoints" , "best-checkpoint.ckpt")
     checkpoint_to_load = os.path.join(checkpoint_path,"checkpoints", "best-checkpoint.ckpt")
-    run_inference(db_path, outdir , checkpoint_to_load, params , display = True )
+    run_inference(db_path, outdir , checkpoint_to_load, params , display = False )
+
+
+if __name__ == "__main__":
+
+    params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
+    dbtrain_name = 'snp_v0'
+    db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'   #path of
+    checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{dbtrain_name}_{params['model_type']}"
+    outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtrain_name}_{params['model_type']}"
+
+    main()
