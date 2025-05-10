@@ -68,3 +68,5 @@ class LitStockPredictor(pl.LightningModule):
             },
         }
 
+    def get_dataset_params(self):
+        return []

@@ -10,6 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 import joblib
 from pytorch_forecasting import TimeSeriesDataSet
 from pytorch_forecasting.data import GroupNormalizer
+from pytorch_forecasting.data.encoders import NaNLabelEncoder
 
 class StockDataset(Dataset):
     def __init__(self, df, seq_len=60, pred_len=2 , step = 1 , get_meta = False):
@@ -26,7 +27,6 @@ class StockDataset(Dataset):
             for i in range(1,len(values) - seq_len - pred_len, step):
                 x = values[i:i + seq_len]
                 y = values[i + seq_len:i + seq_len + pred_len, 3]  # prediction GT
-                #y = values[i + seq_len-1:i + seq_len + pred_len-1, 3]  # prediction GT , with last sample
                 self.samples.append((torch.tensor(x, dtype=torch.float32),
                                      torch.tensor(y, dtype=torch.float32)))
                 if get_meta:
@@ -81,7 +81,17 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
                 add_target_scales=True,
                 add_encoder_length=True,
                 allow_missing_timesteps=True,  # Allow gaps in time series data
+
+                categorical_encoders = {
+                    "group_id": NaNLabelEncoder(add_nan=True), #  allow unknown categories - for inference over new categories
+                    "stock_id": NaNLabelEncoder(add_nan=True),
+                    "stock_name": NaNLabelEncoder(add_nan=True),
+                    "__group_id__stock_id": NaNLabelEncoder(add_nan=True),  # optional: auto-created if group_ids used
+                }
         )
+
+
+
         loader = dataset.to_dataloader(batch_size=batch_size, shuffle=shuffle)
 
     return loader

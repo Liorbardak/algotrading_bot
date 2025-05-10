@@ -22,7 +22,7 @@ class TFTLightningWrapper(pl.LightningModule):
         self.save_hyperparameters(ignore=["training_dataset"])
         self.training_dataset = training_dataset
 
-        # Store parameters for later use
+        # Store parameters for later use - Todo - get from config
         self.learning_rate = kwargs.get("learning_rate", 1e-3)
         self.reduce_on_plateau_patience = kwargs.get("reduce_on_plateau_patience", 0)
 
@@ -32,6 +32,9 @@ class TFTLightningWrapper(pl.LightningModule):
                 training_dataset,
                 **kwargs
             )
+
+    def get_dataset_params(self):
+        return self.tft.dataset_parameters
 
     def predict(self, dataloader, **kwargs):
         return self.tft.predict(dataloader, **kwargs)
@@ -50,7 +53,7 @@ class TFTLightningWrapper(pl.LightningModule):
         loss_value = loss_value.mean()
         # Log the loss
         self.log(f"{stage}_loss", loss_value.mean(), on_epoch=True, prog_bar=True)
-
+        self.log('lr', self.learning_rate, on_epoch=True, prog_bar=True, logger=True)
         return loss_value
 
     def training_step(self, batch, batch_idx):

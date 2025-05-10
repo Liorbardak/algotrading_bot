@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from typing import Dict
-import pandas as pd
+import pickle
 import torch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytorch_lightning as pl
@@ -13,6 +13,14 @@ from loaders.dataloaders import get_loaders
 from models.get_models import get_model
 
 def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
+
+    # Prevent sleep
+    import ctypes
+    ES_CONTINUOUS = 0x80000000
+    ES_SYSTEM_REQUIRED = 0x00000001
+    ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
+
     checkpoints_path = os.path.join(outdir, 'checkpoints')
     log_path = os.path.join(outdir, 'logs')
     os.makedirs(checkpoints_path ,exist_ok=True)
@@ -33,7 +41,7 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
 
     print('get loaders')
     train_loader, val_loader= get_loaders(datadir, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
-                                          , step=data_step ,  loader_type = params['model_type'] )
+                                          , step=data_step ,  loader_type = params['model_type'], batch_size=params['batch_size'] )
 
     print('get model ')
     model = get_model(params['model_type'], params,train_loader.dataset )
@@ -51,8 +59,10 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
 
 if __name__ == "__main__":
     params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
-    datadir = 'C:/Users/dadab/projects/algotrading/data/training/dbsmall'
-    outdir = "C:/Users/dadab/projects/algotrading/training/dbsmall_" + params['model_type']
+
+    ddname =  'snp_v0'
+    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
+    outdir = f"C:/Users/dadab/projects/algotrading/training/{ddname}_{params['model_type']}"
 
 
-    run_training(datadir, outdir , max_epochs=50, params=params )
+    run_training(datadir, outdir , max_epochs=500, params=params )

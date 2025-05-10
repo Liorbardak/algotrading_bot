@@ -41,6 +41,9 @@ class StockTransformer(nn.Module):
         self.fc_out = nn.Linear(hidden_size, 1)  # Predict only the target feature
         self.pred_len = pred_len
 
+    def get_dataset_params(self):
+        return []
+
     def forward(self, x):
         # x shape: [batch_size, seq_len, input_dim]
 

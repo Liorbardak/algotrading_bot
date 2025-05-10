@@ -1,6 +1,8 @@
 {
-  "model_type" : "ntft",
+  "model_type" : "simp_tf",
+  "_comment": "simp_tf or tft",
   "lr" : 1e-3 ,
+  "batch_size" : 64,
   "ckpt_path_to_load": "",
   "pred_len" : 15,
   "max_encoder_length" : 60
