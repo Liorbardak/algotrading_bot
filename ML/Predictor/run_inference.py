@@ -114,6 +114,8 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     :param params:
     :return:
     '''
+    torch.set_float32_matmul_precision('medium')
+
     batch_size = 32
 
     os.makedirs(outputdir, exist_ok=True)

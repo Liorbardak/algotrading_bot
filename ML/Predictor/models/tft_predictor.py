@@ -24,7 +24,7 @@ class TFTLightningWrapper(pl.LightningModule):
 
         # Store parameters for later use - Todo - get from config
         self.learning_rate = kwargs.get("learning_rate", 1e-3)
-        self.reduce_on_plateau_patience = kwargs.get("reduce_on_plateau_patience", 0)
+        self.reduce_on_plateau_patience = kwargs.get("reduce_on_plateau_patience", 1)
 
         # Create TFT model
         if training_dataset is not None:

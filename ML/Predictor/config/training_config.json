@@ -1,5 +1,5 @@
 {
-  "model_type" : "simp_tf",
+  "model_type" : "tft",
   "_comment": "simp_tf or tft",
   "lr" : 1e-3 ,
   "batch_size" : 64,
