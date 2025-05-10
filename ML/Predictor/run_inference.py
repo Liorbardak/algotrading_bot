@@ -42,8 +42,9 @@ def run_inference(datadir, outputdir , checkpoint_to_load, params ,display = Fal
     pred_df = pd.read_csv(os.path.join(outdir,'predictions.csv'))
 
     # merge
-    merged_df = pd.merge(df, pred_df, on=['name','Date'], how='outer')
+    merged_df = pd.merge(df, pred_df, on=['ticker','date'], how='outer')
     merged_df.to_csv(os.path.join(outdir,'ticker_data.csv'))
+
 
 
 def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,display = False , dbname = 'train_stocks.csv'):
@@ -91,14 +92,13 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
 
                 normfact = normalization_factor[data['stock'] + 'normFact']
 
-                r = {'name': data['stock'], 'Date': data['date']}
+                r = {'ticker': data['stock'], 'date': data['date']}
                 for i, pred in enumerate(output_cpu[idx]):
                     r['pred' + str(i)] = pred / normfact
                 rows.append(r)
 
                 if(display) & (idx in ids_to_show) :
                     print(loss)
-
 
                     plt.figure()
                     plt.plot(input_cpu[idx,:,3],label='input')
@@ -113,8 +113,8 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
                     plt.show()
             bidx += batch_size
 
-
-    pd.DataFrame(rows).to_csv(os.path.join(outputdir,params['model_type'] + 'predictions.csv'))
+    # Save predictions
+    pd.DataFrame(rows).to_csv(os.path.join(outputdir, 'predictions.csv'))
 
 
 def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=False , dbname = 'train_stocks.csv' ):
@@ -139,12 +139,8 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
 
     # ID to name
     id_to_name = dict()
-    for n, df in stock_data.groupby('stock_name'):
-        id_to_name[df['stock_id'].values[0]] = n
-
-
-
-
+    for n, df in stock_data.groupby('ticker'):
+        id_to_name[df['ticker_id'].values[0]] = n
 
     inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
                                    , batch_size=batch_size , shuffle=False, get_meta = True, loader_type = params['model_type']  )
@@ -162,11 +158,11 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     # Translate prediction to data frame
     rows = []
     for prediction,group_id, time_idx in  zip(predictions,group_ids,decoder_time_idx):
-        stock_name = id_to_name[group_id]
-        date = stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == time_idx[0]-1)].date.values[0]
+        ticker = id_to_name[group_id]
+        date = stock_data[(stock_data.ticker_id == group_id) & (stock_data.time_idx == time_idx[0]-1)].date.values[0]
 
-        normfact = normalization_factor[stock_name + 'normFact']
-        r = {'name':stock_name , 'Date': date }
+        normfact = normalization_factor[ticker + 'normFact']
+        r = {'ticker':ticker , 'date': date }
         for i, pred in enumerate(prediction):
             r['pred' + str(i)] = pred / normfact
         rows.append(r)
@@ -176,12 +172,12 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
                 prev_idx =np.arange(time_idx[0]-20,time_idx[0])
                 prev_v = []
                 for ix in prev_idx:
-                    prev_v.append(stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == ix)]['close'])
+                    prev_v.append(stock_data[(stock_data.ticker_id == group_id) & (stock_data.time_idx == ix)]['close'])
 
                 plt.figure()
                 plt.plot(time_idx,  prediction ,label='prediction')
                 plt.plot(prev_idx, prev_v, label='before')
-                plt.title(f' {stock_name}  {time_idx[0]}')
+                plt.title(f' {ticker}  {time_idx[0]}')
                 plt.show()
 
 
@@ -196,8 +192,7 @@ def main():
     outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtrain_name}_{params['model_type']}"
     os.makedirs(outdir, exist_ok=True)
 
-    #checkpoint_to_load = os.path.join(outdir,"checkpoints" , "best-checkpoint.ckpt")
-    checkpoint_to_load = os.path.join(checkpoint_path,"checkpoints", "best-checkpoint.ckpt")
+    checkpoint_to_load = os.path.join(checkpoint_path,"checkpoints", "best-checkpoint.ckpt") # Note - dont forget to change the checkpoint name
     run_inference(db_path, outdir , checkpoint_to_load, params , display = False )
 
 

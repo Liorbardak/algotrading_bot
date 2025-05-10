@@ -21,5 +21,8 @@ or :
 python  basic_code\sim_runner.py -i <inputdir> -o <output_dir> -b <bot list>
 
 Training
-python  ML\Predictor\run_training.py
+Predictor 
+- Run prepare_data_for_training.py for Create the training/validation/test data
+- run training:  python  ML\Predictor\run_training.py
+- run trained predictor , create data frame with predictions - run_inference.py
       

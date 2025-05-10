@@ -40,27 +40,29 @@ def detect_stocks_with_jumps(inputdir : str,stocks_names: np.array,th = 0.7)->Li
     return bad_stocks
 
 
-def re_arange_df(df: pd.DataFrame,stock_name : str, stock_id :int , norm_factors : Dict):
+def re_arange_df(df: pd.DataFrame,ticker : str, stock_id :int , norm_factors : Dict):
     # Add some stuff / normalize / so on
+
+
+
     df['time_idx'] = np.arange(len(df))
-    df['year'] = [v.astype('datetime64[Y]').astype(int) + 1970 for v in df.Date.values]
-    df['month'] = [v.astype('datetime64[M]').astype(int) % 12 + 1 for v in df.Date.values]
-    df['day'] = [(v - v.astype('datetime64[M]')).astype(int) + 1 for v in df.Date.values]
-    df['stock_name'] = stock_name
+    df['year'] = [v.astype('datetime64[Y]').astype(int) + 1970 for v in df.date.values]
+    df['month'] = [v.astype('datetime64[M]').astype(int) % 12 + 1 for v in df.date.values]
+    df['day'] = [(v - v.astype('datetime64[M]')).astype(int) + 1 for v in df.date.values]
+    df['ticker'] = ticker
     df['stock_id'] = stock_id
-    # Rename
-    df.rename(
-        columns={'1. open': 'open', '2. high': 'high', '3. low': 'low', 'close': 'close', '5. volume': 'volume','Date': 'date'},
-        inplace=True)
 
 
-    df = df[['date', 'year', 'month', 'day', 'open', 'close', 'high', 'low', 'volume', 'stock_name', 'stock_id']]
 
+    df = df[['date', 'year', 'month', 'day', 'open', 'close', 'high', 'low', 'volume', 'ticker', 'stock_id']]
+    # TODO - add more inputs
     # normalize inputs and store the normalization
+
     # Normalize to by scaling (without offset , for now (?))
     normFact = norm_factors['first_close_scale'] / df['close'].values[0]
     for k in norm_factors['cols_to_pre_normalize_together']:
         df.loc[:,k] =(df[k].astype(float) * normFact).astype(df[k].dtype)
+
     return df , normFact
 
 def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , maxDate = None ,
@@ -83,8 +85,16 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
     
     dfs = []
     dfs_raw = []
-    for i, stock_name in enumerate(stock_list_to_use):
-        df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
+    for i, ticker in enumerate(stock_list_to_use):
+        df = pd.read_excel(os.path.join(inputdir, ticker, 'stockPrice.xlsx'), engine='openpyxl')
+
+        # Rename
+        df.rename(
+            columns={'1. open': 'open', '2. high': 'high', '3. low': 'low', 'close': 'close', '5. volume': 'volume',
+                     'Date': 'date'},
+            inplace=True)
+        # Remove redundant cols
+        df = df[['date','open', 'close', 'high', 'low', 'volume']]
 
         if minDate is not None and   maxDate is not None:
             min_date = datetime.strptime(minDate, "%Y-%m-%d")
@@ -92,18 +102,18 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
             # take only these dates
             datetime.strptime(minDate, "%Y-%m-%d")
 
-            df = df[df['Date'].between(min_date, max_date)]
+            df = df[df['date'].between(min_date, max_date)]
 
         if (len(df) < min_length):
             continue
         #Store non-normalized data
         df_raw = deepcopy(df)
-        df_raw['name'] = stock_name
+        df_raw['ticker'] = ticker
         dfs_raw.append(df_raw)
 
-        df, normFact = re_arange_df(df, stock_name, i, norm_factors)
+        df, normFact = re_arange_df(df, ticker, i, norm_factors)
         dfs.append(df)
-        norm_factors[stock_name + 'normFact'] = normFact
+        norm_factors[ticker + 'normFact'] = normFact
 
     # Get the raw (non-normalized) data
     raw_df = pd.concat(dfs_raw, ignore_index=True)
@@ -114,8 +124,8 @@ def get_normalized_training_data(inputdir, stock_list_to_use , minDate =None , m
     train_df = train_df.fillna(0)
 
     # Create time index - ensure each ticker starts from 0
-    train_df = train_df.sort_values(['stock_name', 'date'])
-    train_df['time_idx'] = train_df.groupby('stock_name').cumcount()
+    train_df = train_df.sort_values(['ticker', 'date'])
+    train_df['time_idx'] = train_df.groupby('ticker').cumcount()
 
     # Drop rows with missing values
     train_df = train_df.dropna()
@@ -277,27 +287,29 @@ def create_set_from_stocks_outof_snp():
 
     preprocess_data_to_train(all_stock_dir, datadir, sorted(snp['Ticker'].values),stock_list_to_use = [] , number_of_stocks_to_use=10)
 
-def create_set_from_from_snp():
+def create_set_from_from_snp(inputdir : str , outputdir:str,    split_date_factor = 0.5):
     '''
     Create training set from s&p
      Prepare the 3 sets - train & validation from start_train_date to  end_train_date ,
      test - all stocks start_test_date - end_test_date
     :param inputdir: 
-    :param outputdir: 
+    :param outputdir:
+    :param split_date_factor: split_date_factor
+
     :return: 
     '''
 
-    inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    outputdir ='C:/Users/dadab/projects/algotrading/data/training/snp_v0'
-    split_date_factor = 0.5
+
+
+
 
     os.makedirs(outputdir, exist_ok=True)
 
 
     # Get all snp stocks to simulate
     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500/all_stocks.csv')
-    all_dates = np.array(sorted(list(set(snp['Date']))))
-    
+    all_dates = np.array(sorted(list(set(snp['date']))))
+
     start_train_date = all_dates[0]    
     end_train_date = all_dates[int(len(all_dates)*split_date_factor)]
     
@@ -306,9 +318,13 @@ def create_set_from_from_snp():
 
     # Prepare the 3 sets - train & validation from start_train_date to  end_train_date , test - all stocks start_test_date - end_test_date
     val_train_split = 0.7
-    all_stocks =np.array(list(set(snp['name'])))
+    all_stocks =np.array(list(set(snp['ticker'])))
     # randomize
     all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
+
+    # run smoothing on all data - TODO - remove
+
+
     # Split train -val
     train_stocks = all_stocks[:int(len(all_stocks)*val_train_split)]
     val_stocks = all_stocks[int(len(all_stocks)*val_train_split):]
@@ -334,6 +350,7 @@ def create_set_from_from_snp():
 
 if __name__ == "__main__":
     np.random.seed(42)
-
-    create_set_from_from_snp()
+    inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
+    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v0_ma20'
+    create_set_from_from_snp(inputdir, outputdir ,split_date_factor= 0.5 )
 

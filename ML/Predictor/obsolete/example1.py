@@ -99,7 +99,7 @@ class StockPricePredictor:
         #         df.reset_index(inplace=True)
         #
         #         # Add ticker column
-        #         df['stock_name'] = ticker
+        #         df['ticker'] = ticker
         #
         #         # Add to list
         #         all_data.append(df)
@@ -110,14 +110,14 @@ class StockPricePredictor:
         #
         # # Combine all data
         # self.data = pd.concat(all_data, ignore_index=True)
-        # #self.data.rename(columns={'Date': 'date'}, inplace=True)
+        # #self.data.rename(columns={'date': 'date'}, inplace=True)
         #
         # # Fill NA values
         # self.data = self.data.fillna(0)
         #
         # # Create time index - ensure each ticker starts from 0
-        # self.data = self.data.sort_values(['stock_name', 'date'])
-        # self.data['time_idx'] = self.data.groupby('stock_name').cumcount()
+        # self.data = self.data.sort_values(['ticker', 'date'])
+        # self.data['time_idx'] = self.data.groupby('ticker').cumcount()
         #
         #
         # # Drop rows with missing values
@@ -141,12 +141,12 @@ class StockPricePredictor:
             data=self.data[:train_cutoff],
             time_idx="time_idx",
             target="close",
-            group_ids=["stock_name"],
+            group_ids=["ticker"],
             min_encoder_length=self.context_length // 2,  # Minimum history length
             max_encoder_length=self.context_length,  # Maximum history length
             min_prediction_length=1,
             max_prediction_length=self.forecast_horizon,
-            static_categoricals=["stock_name"],
+            static_categoricals=["ticker"],
             time_varying_known_categoricals=[],
             time_varying_known_reals=["time_idx"],
             time_varying_unknown_categoricals=[],
@@ -154,7 +154,7 @@ class StockPricePredictor:
                 "open", "high", "low", "close", "volume",
             ],
             target_normalizer=GroupNormalizer(
-                groups=["stock_name"], transformation="softplus"
+                groups=["ticker"], transformation="softplus"
             ),
             add_relative_time_idx=True,
             add_target_scales=True,

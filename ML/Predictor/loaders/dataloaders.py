@@ -19,8 +19,8 @@ class StockDataset(Dataset):
         self.samples = []
         self.meta = []
 
-        for ticker in df['stock_name'].unique():
-            stock_df = df[df['stock_name'] == ticker].copy()
+        for ticker in df['ticker'].unique():
+            stock_df = df[df['ticker'] == ticker].copy()
 
             values = stock_df[['open', 'high', 'low', 'close', 'volume']].values
             dates = stock_df['date'].values
@@ -62,12 +62,12 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
                 data=data,
                 time_idx="time_idx",
                 target="close",
-                group_ids=["stock_id"],
+                group_ids=["ticker_id"],
                 min_encoder_length=max_encoder_length,  # Minimum history length
                 max_encoder_length=max_encoder_length,  # Maximum history length
                 min_prediction_length=1,
                 max_prediction_length=max_prediction_length,
-                static_categoricals=["stock_name"],
+                static_categoricals=["ticker"],
                 time_varying_known_categoricals=[],
                 time_varying_known_reals=["time_idx"],
                 time_varying_unknown_categoricals=[],
@@ -75,7 +75,7 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
                     "open", "high", "low", "close", "volume",
                 ],
                 target_normalizer=GroupNormalizer(
-                    groups=["stock_id"], transformation="softplus"
+                    groups=["ticker_id"], transformation="softplus"
                 ),
                 add_relative_time_idx=True,
                 add_target_scales=True,
@@ -84,9 +84,9 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
 
                 categorical_encoders = {
                     "group_id": NaNLabelEncoder(add_nan=True), #  allow unknown categories - for inference over new categories
-                    "stock_id": NaNLabelEncoder(add_nan=True),
-                    "stock_name": NaNLabelEncoder(add_nan=True),
-                    "__group_id__stock_id": NaNLabelEncoder(add_nan=True),  # optional: auto-created if group_ids used
+                    "ticker_id": NaNLabelEncoder(add_nan=True),
+                    "ticker": NaNLabelEncoder(add_nan=True),
+                    "__group_id__ticker_id": NaNLabelEncoder(add_nan=True),  # optional: auto-created if group_ids used
                 }
         )
 

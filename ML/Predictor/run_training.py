@@ -65,4 +65,4 @@ if __name__ == "__main__":
     outdir = f"C:/Users/dadab/projects/algotrading/training/{ddname}_{params['model_type']}"
 
 
-    run_training(datadir, outdir , max_epochs=500, params=params )
+    run_training(datadir, outdir , max_epochs=200, params=params )
