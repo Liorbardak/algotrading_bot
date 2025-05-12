@@ -156,13 +156,14 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     model = get_model(params['model_type'], params,inference_loader.dataset , checkpoint_to_load )
 
     # Predict
+
     prediction_items  = model.predict(inference_loader, return_x=True)
+
     predictions = prediction_items[0].cpu().numpy()
     x = prediction_items[1]
     group_ids = x['groups'].cpu().numpy().flatten()
     decoder_time_idx = x['decoder_time_idx'].cpu().numpy()
 
-    # Translate prediction to data frame
     rows = []
     for prediction,group_id, time_idx in  zip(predictions,group_ids,decoder_time_idx):
         ticker = id_to_name[group_id]

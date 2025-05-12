@@ -1,12 +1,12 @@
 {
   "model_type" : "tft",
   "_comment": "simp_tf , tft ,lstm1 ,lstm2 ",
-  "db" : "snp_test1",
+  "db" : "snp_plus_ma20_5",
   "lr" : 1e-3 ,
   "batch_size" : 64,
   "input_len": 5,
   "pred_len" : 5,
   "max_encoder_length" : 64,
-  "max_epoch" : 20,
+  "max_epoch" : 5,
   "checkpoint_to_load": ""
 }
