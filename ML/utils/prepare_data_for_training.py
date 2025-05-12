@@ -199,20 +199,20 @@ def preprocess_data_to_train(inputdir : str, outputdir: str ,stock_list_not_to_u
     # Split df to train and validation
     train_stocks = all_stocks[:int(len(all_stocks)*val_train_split)]
     val_stocks = all_stocks[int(len(all_stocks)*val_train_split):]
-    
+
     train_df ,train_norm_factors =  get_normalized_training_data(inputdir , train_stocks )
     #save data
     train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
     # Save normalization
     pickle.dump(train_norm_factors, open(os.path.join(outputdir, 'train_norm_factors.pkl'), 'wb'))
-    
-    
+
+
     val_df, val_norm_factors = get_normalized_training_data(inputdir, val_stocks)
     #save data
     val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
     # Save normalization
     pickle.dump(val_norm_factors, open(os.path.join(outputdir, 'val_norm_factors.pkl'), 'wb'))
-    
+
     # dfs = []
     # for i, stock_name in enumerate(train_stocks):
     #     df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
@@ -221,28 +221,28 @@ def preprocess_data_to_train(inputdir : str, outputdir: str ,stock_list_not_to_u
     #     df, normFact = re_arange_df(df, stock_name,i, norm_factors)
     #     dfs.append(df)
     #     norm_factors[stock_name + 'normFact'] = normFact
-    # 
+    #
     # train_df = pd.concat(dfs, ignore_index=True)
     # # Fill NA values
     # train_df = train_df.fillna(0)
-    # 
+    #
     # # Create time index - ensure each ticker starts from 0
     # train_df =train_df.sort_values(['stock_name', 'date'])
     # train_df['time_idx'] = train_df.groupby('stock_name').cumcount()
-    # 
+    #
     # # Drop rows with missing values
     # train_df= train_df.dropna()
-    # 
+    #
     # # Rescale volume and other features on all data
     # cols_to_normalize = ['volume']
     # for k in cols_to_normalize:
     #     norm_factors[k + 'offset'] =  np.min(train_df['volume'].values)
     #     norm_factors[k + 'scale'] = 1.0 / (np.max(train_df['volume'].values) - norm_factors[k + 'offset'])
     #     train_df[k] = (train_df[k] -    norm_factors[k + 'offset']) * norm_factors[k + 'scale']
-    # 
+    #
     # # Save training
     # train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
-    # 
+    #
     # # Get validation set
     # dfs = []
     # for i, stock_name in enumerate(val_stocks):
@@ -252,22 +252,22 @@ def preprocess_data_to_train(inputdir : str, outputdir: str ,stock_list_not_to_u
     #     df, normFact  = re_arange_df(df, stock_name,i, norm_factors)
     #     norm_factors[stock_name + 'normFact'] = normFact
     #     dfs.append(df)
-    # 
+    #
     # val_df = pd.concat(dfs, ignore_index=True)
     # # Fill NA values
     # val_df = val_df.fillna(0)
-    # 
+    #
     # # Create time index - ensure each ticker starts from 0
     # val_df =val_df.sort_values(['stock_name', 'date'])
     # val_df['time_idx'] = val_df.groupby('stock_name').cumcount()
-    # 
+    #
     # #Scale with t
     # for k in cols_to_normalize:
     #     val_df[k] = (val_df[k] -    norm_factors[k + 'offset']) * norm_factors[k + 'scale']
-    # 
+    #
     # # Save validation
     # val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
-    # 
+    #
     # # Save normalization
     # pickle.dump(norm_factors, open(os.path.join(outputdir, 'norm_factors.pkl'), 'wb'))
 
@@ -277,7 +277,7 @@ def create_set_from_stocks_outof_snp():
     datadir ='C:/Users/dadab/projects/algotrading/data/training/small_10'
     #
     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
-    
+
 
     # good_names = pickle.load(open('C:/Users\dadab\projects/algotrading\data/training/goodstocks.pkl', 'rb'))
     # ref2 = pd.read_csv('C:/Users/dadab\projects/algotrading\data/training/obsolete\dbmed4/train_stocks.csv')
@@ -287,16 +287,16 @@ def create_set_from_stocks_outof_snp():
 
     preprocess_data_to_train(all_stock_dir, datadir, sorted(snp['Ticker'].values),stock_list_to_use = [] , number_of_stocks_to_use=10)
 
-def create_set_from_from_snp(inputdir : str , outputdir:str,    split_date_factor = 0.5):
+def create_set_from_snp(inputdir : str , outputdir:str,    split_date_factor = 0.5):
     '''
     Create training set from s&p
      Prepare the 3 sets - train & validation from start_train_date to  end_train_date ,
      test - all stocks start_test_date - end_test_date
-    :param inputdir: 
+    :param inputdir:
     :param outputdir:
     :param split_date_factor: split_date_factor
 
-    :return: 
+    :return:
     '''
 
 
@@ -310,17 +310,17 @@ def create_set_from_from_snp(inputdir : str , outputdir:str,    split_date_facto
     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500/all_stocks.csv')
     all_dates = np.array(sorted(list(set(snp['date']))))
 
-    start_train_date = all_dates[0]    
+    start_train_date = all_dates[0]
     end_train_date = all_dates[int(len(all_dates)*split_date_factor)]
-    
+
     start_test_date = all_dates[int(len(all_dates)*split_date_factor)+1]
     end_test_date = all_dates[-1]
 
     # Prepare the 3 sets - train & validation from start_train_date to  end_train_date , test - all stocks start_test_date - end_test_date
     val_train_split = 0.7
-    all_stocks =np.array(list(set(snp['ticker'])))
+    all_stocks =np.array(sorted(list(set(snp['ticker']))))
     # randomize
-    all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
+    #all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
 
 
     train_stocks = all_stocks[:int(len(all_stocks)*val_train_split)]
@@ -366,6 +366,6 @@ def create_set_from_from_snp(inputdir : str , outputdir:str,    split_date_facto
 if __name__ == "__main__":
     np.random.seed(42)
     inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_overfit'
-    create_set_from_from_snp(inputdir, outputdir ,split_date_factor= 0.5 )
+    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_test1'
+    create_set_from_snp(inputdir, outputdir ,split_date_factor= 0.5 )
 

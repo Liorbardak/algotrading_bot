@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pylab as plt
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import joblib
+from config.config import get_config
 import torch
 #import pandas as pd
 #from models.transformer_predictor import TransformerPredictorModel
@@ -19,15 +19,16 @@ from torch import nn
 
 
 
-def run_inference(datadir, outputdir , checkpoint_to_load, params ,display = False , dbname = 'test_stocks.csv'):
+def run_inference(datadir, outputdir ,  params ,display = False , dbname = 'test_stocks.csv'):
     '''
     Run inference and save results
-    :param datadir:
+    :param datadir: location of data to training
     :param outputdir:
-    :param checkpoint_to_load:
     :param params:
     :return:
     '''
+
+    checkpoint_to_load = params['checkpoint_to_load']
 
     if  params['model_type'] == 'tft':
         run_inference_tft(datadir, outputdir, checkpoint_to_load, params, display = display , dbname = dbname)
@@ -37,14 +38,14 @@ def run_inference(datadir, outputdir , checkpoint_to_load, params ,display = Fal
     # Combine with the original data
 
     # Get the original stock prices
-    df = pd.read_csv(os.path.join(outputdir,'test_df_orig.csv'))
+    df = pd.read_csv(os.path.join(datadir,'test_df_orig.csv'))
 
     # Get the predicted stock prices , just calculated here
     pred_df = pd.read_csv(os.path.join(outputdir,'predictions.csv'))
 
-    # merge
+    # merge & save to the output
     merged_df = pd.merge(df, pred_df, on=['ticker','date'], how='outer')
-    merged_df.to_csv(os.path.join(outputdir,'ticker_data.csv'))
+    merged_df.to_csv(os.path.join(outputdir,'ticker_data_with_prediction.csv'))
 
 
 
@@ -58,14 +59,13 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
     :return:
     '''
 
-    batch_size = 32
+    batch_size = 64
 
     os.makedirs(outputdir, exist_ok=True)
     # load normalization factors
     normalization_factor = pickle.load(open(os.path.join(datadir,dbname.split('.')[0] + '_norm_factors.pkl'),'rb'))
 
     # Load the model
-
     inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
                                    , batch_size=batch_size , shuffle=False, get_meta = True , loader_type = params['model_type'] )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -91,6 +91,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
             # Store predictions
             ids_to_show = [np.argmax(np.mean((output_cpu - output_cpu_gt) ** 2, axis=1))]  # worth sample
             #ids_to_show = range(output_cpu.shape[0])
+            ids_to_show = [0]
 
             for idx in range(output_cpu.shape[0]):
 
@@ -100,7 +101,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
 
                 r = {'ticker': data['stock'], 'date': data['date']}
                 for i, pred in enumerate(output_cpu[idx]):
-                    r['pred' + str(i)] = pred / normfact
+                    r['pred' + str(i+1)] = pred / normfact
                 rows.append(r)
 
                 if(display) & (idx in ids_to_show) :
@@ -146,7 +147,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     # ID to name
     id_to_name = dict()
     for n, df in stock_data.groupby('ticker'):
-        id_to_name[df['ticker_id'].values[0]] = n
+        id_to_name[df['stock_id'].values[0]] = n
 
     inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
                                    , batch_size=batch_size , shuffle=False, get_meta = True, loader_type = params['model_type']  )
@@ -165,7 +166,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     rows = []
     for prediction,group_id, time_idx in  zip(predictions,group_ids,decoder_time_idx):
         ticker = id_to_name[group_id]
-        date = stock_data[(stock_data.ticker_id == group_id) & (stock_data.time_idx == time_idx[0]-1)].date.values[0]
+        date = stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == time_idx[0]-1)].date.values[0]
 
         normfact = normalization_factor[ticker + 'normFact']
         r = {'ticker':ticker , 'date': date }
@@ -178,7 +179,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
                 prev_idx =np.arange(time_idx[0]-20,time_idx[0])
                 prev_v = []
                 for ix in prev_idx:
-                    prev_v.append(stock_data[(stock_data.ticker_id == group_id) & (stock_data.time_idx == ix)]['close'])
+                    prev_v.append(stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == ix)]['close'])
 
                 plt.figure()
                 plt.plot(time_idx,  prediction ,label='prediction')
@@ -190,18 +191,20 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     pd.DataFrame(rows).to_csv(os.path.join(outputdir,'predictions.csv'))
 
 def main():
-    params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
 
-    dbtrain_name =  'snp_overfit'
+    params = get_config()
+    dbtrain_name = params['db']
     db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'   #path of
     checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{dbtrain_name}_{params['model_type']}"
-    outdir = f"C:/Users/dadab/projects/algotrading/results/{dbtrain_name}_{params['model_type']}"
+    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{dbtrain_name}_{params['model_type']}"
+
+
+    params['checkpoint_to_load'] = os.path.join(checkpoint_path, "checkpoints", "best-checkpoint.ckpt")
+
     os.makedirs(outdir, exist_ok=True)
 
-    checkpoint_to_load = os.path.join(checkpoint_path,"checkpoints", "best-checkpoint.ckpt") # Note - dont forget to change the checkpoint name
-    run_inference(db_path, outdir , checkpoint_to_load, params , display = True , dbname ='train_stocks.csv')
+    run_inference(db_path, outdir ,params,  display = False, dbname ='train_stocks.csv')
 
 
 if __name__ == "__main__":
-
     main()

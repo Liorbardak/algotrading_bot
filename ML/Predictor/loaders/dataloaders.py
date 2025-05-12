@@ -89,9 +89,6 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
                     "__group_id__ticker_id": NaNLabelEncoder(add_nan=True),  # optional: auto-created if group_ids used
                 }
         )
-
-
-
         loader = dataset.to_dataloader(batch_size=batch_size, shuffle=shuffle)
 
     return loader

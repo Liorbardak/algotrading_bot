@@ -6,26 +6,44 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from pytorch_forecasting.metrics import QuantileLoss , SMAPE
 
 from tft_predictor import  TFTLightningWrapper
-from transformer_predictor import  LitStockPredictor ,TransformerPredictorModel
+from transformer_predictor import  LitStockPredictor , TimeSeriesTransformer
 from simple_predictor import LinearPredictorModel
+from lstm_predictor import Seq2SeqLSTM, Seq2SeqLSTM2
 
 def get_model(model_type : str, parameters : dict , dataset = None , checkpoint_to_load : str = None):
     if model_type == 'simp_tf':
-        if checkpoint_to_load is None:
-            model = LitStockPredictor(model=TransformerPredictorModel(pred_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
+        if checkpoint_to_load == "":
+            model = LitStockPredictor(model=TimeSeriesTransformer(pred_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
         else:
             model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load,
-                                                           model=TransformerPredictorModel(pred_len=parameters['pred_len']),
+                                                           model=TimeSeriesTransformer(pred_len=parameters['pred_len']),
                                                            params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
+
+    elif model_type == 'lstm1':
+        if checkpoint_to_load == "":
+            model = LitStockPredictor(model=Seq2SeqLSTM( input_size=parameters['input_len'], hidden_size=32, output_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
+        else:
+            model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load,
+                                                           model=Seq2SeqLSTM( input_size=parameters['input_len'], hidden_size=32, output_len=parameters['pred_len']),
+                                                           params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
+
+    elif model_type == 'lstm2':
+        if checkpoint_to_load == "":
+            model = LitStockPredictor(model=Seq2SeqLSTM( input_size=parameters['input_len'], hidden_size=64, output_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
+        else:
+            model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load,
+                                                           model=Seq2SeqLSTM( input_size=parameters['input_len'], hidden_size=64, output_len=parameters['pred_len']),
+                                                           params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
+
     elif model_type == 'regressor':
-        if checkpoint_to_load is None:
-            model = LitStockPredictor(model=LinearPredictorModel(pred_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
+        if checkpoint_to_load == "":
+            model = LitStockPredictor(model=LinearPredictorModel(pred_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
         else:
             model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load,
                                                            model=LinearPredictorModel(pred_len=parameters['pred_len']),
-                                                           params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
+                                                           params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
     elif model_type == 'tft':
-        if checkpoint_to_load is None:
+        if checkpoint_to_load == "":
             model = TFTLightningWrapper(
                 training_dataset=dataset,
                 learning_rate=parameters['lr'],

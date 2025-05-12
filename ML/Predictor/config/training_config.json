@@ -1,9 +1,12 @@
 {
-  "model_type" : "regressor",
-  "_comment": "simp_tf or tft or regressor",
+  "model_type" : "tft",
+  "_comment": "simp_tf , tft ,lstm1 ,lstm2 ",
+  "db" : "snp_test1",
   "lr" : 1e-3 ,
   "batch_size" : 64,
-  "ckpt_path_to_load": "",
-  "pred_len" : 15,
-  "max_encoder_length" : 60
+  "input_len": 5,
+  "pred_len" : 5,
+  "max_encoder_length" : 64,
+  "max_epoch" : 20,
+  "checkpoint_to_load": ""
 }

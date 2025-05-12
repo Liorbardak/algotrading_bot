@@ -6,13 +6,16 @@ import pickle
 import torch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytorch_lightning as pl
+# import lightning as L
+# import lightning.pytorch.callbacks as L
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_forecasting.metrics import QuantileLoss , SMAPE
 
 from loaders.dataloaders import get_loaders
 from models.get_models import get_model
+from config.config import get_config
 
-def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
+def run_training(datadir : str ,outdir: str ,params : Dict ):
 
     # Prevent sleep
     import ctypes
@@ -20,7 +23,8 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
     ES_SYSTEM_REQUIRED = 0x00000001
     ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
 
-
+    max_epochs = params['max_epoch']
+    checkpoint_to_load = params['checkpoint_to_load']
     checkpoints_path = os.path.join(outdir, 'checkpoints')
     log_path = os.path.join(outdir, 'logs')
     os.makedirs(checkpoints_path ,exist_ok=True)
@@ -44,7 +48,7 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
                                           , step=data_step ,  loader_type = params['model_type'], batch_size=params['batch_size'] )
 
     print('get model ')
-    model = get_model(params['model_type'], params,train_loader.dataset )
+    model = get_model(params['model_type'], params,train_loader.dataset , checkpoint_to_load=checkpoint_to_load )
 
     print('start training')
     trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", devices=1 ,     callbacks=[checkpoint_callback],
@@ -58,11 +62,10 @@ def run_training(datadir : str ,outdir: str ,params : Dict ,max_epochs=2 ):
 
 
 if __name__ == "__main__":
-    params = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'training_config.json')))
 
-    ddname =  'snp_overfit'
+    params = get_config()
+    ddname =  params['db']
     datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
     outdir = f"C:/Users/dadab/projects/algotrading/training/{ddname}_{params['model_type']}"
 
-
-    run_training(datadir, outdir , max_epochs=1200, params=params )
+    run_training(datadir, outdir ,  params=params)

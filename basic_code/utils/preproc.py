@@ -149,8 +149,10 @@ if __name__ == "__main__":
 
     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
 
-    # create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
-    #              filter_by_length = False ,  )
+    create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
+                 filter_by_length = False ,  )
+
+
     prerprocess_data(datadir)
 
 
