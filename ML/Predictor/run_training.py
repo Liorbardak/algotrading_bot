@@ -45,7 +45,8 @@ def run_training(datadir : str ,outdir: str ,params : Dict ):
 
     print('get loaders')
     train_loader, val_loader= get_loaders(datadir, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
-                                          , step=data_step ,  loader_type = params['model_type'], batch_size=params['batch_size'] )
+                                          , step=data_step ,  loader_type = params['model_type'], batch_size=params['batch_size'],
+                                          features =params['features'])
 
     print('get model ')
     model = get_model(params['model_type'], params,train_loader.dataset , checkpoint_to_load=checkpoint_to_load )

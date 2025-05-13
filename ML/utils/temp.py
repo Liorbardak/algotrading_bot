@@ -328,18 +328,26 @@ def create_set(inputdir: str, outputdir: str, all_stocks: np.array, all_test_sto
     train_stocks_ids = np.arange(len(train_stocks))
     val_stocks_ids = np.arange(len(val_stocks))+train_stocks_ids[-1]
 
+    test_stocks = all_stocks
+    test_stocks_ids =  np.arange(len(all_stocks))
+
 
     # Get the train + val data on training dates
     train_df, train_norm_factors, _ = get_normalized_training_data(inputdir, train_stocks,train_stocks_ids, start_train_date,
                                                                    end_train_date)
 
     val_df, val_norm_factors, _ = get_normalized_training_data(inputdir, val_stocks,val_stocks_ids, start_train_date, end_train_date)
-    # test_df, test_norm_factors, test_df_orig = get_normalized_training_data(inputdir, all_test_stocks, start_test_date,
-    #                                                                         end_test_date)
-    test_df, test_norm_factors, test_df_orig = get_normalized_training_data(inputdir, train_stocks,val_stocks_ids, start_test_date,
+
+
+    test_df, test_norm_factors, test_df_orig = get_normalized_training_data(inputdir, test_stocks,test_stocks_ids, start_test_date,
                                                                             end_test_date)
 
-    ########################## add ma TODO - remove ###################################################
+    # test_df, test_norm_factors, test_df_orig = get_normalized_training_data(inputdir, all_test_stocks, start_test_date,
+    #                                                                         end_test_date)
+    # test_df, test_norm_factors, test_df_orig = get_normalized_training_data(inputdir, train_stocks,val_stocks_ids, start_test_date,
+    #                                                                         end_test_date)
+
+    ########################## add ma , overfit TODO - remove ###################################################
     def get_ma(df, ks):
         ndf = []
         for n, sdf in df.groupby('ticker'):
@@ -349,10 +357,19 @@ def create_set(inputdir: str, outputdir: str, all_stocks: np.array, all_test_sto
         return pd.concat(ndf).dropna()
 
     train_df = get_ma(train_df, ['close', 'open', 'high', 'low', 'volume'])
-    train_df = train_df[(train_df.stock_id == 0) |(train_df.stock_id == 1)  ]
-    val_df = train_df
+
+
+    val_df = get_ma(val_df, ['close', 'open', 'high', 'low', 'volume'])
+
     test_df = get_ma(test_df, ['close', 'open', 'high', 'low', 'volume'])
     test_df_orig = get_ma(test_df_orig, ['close', 'open', 'high', 'low', 'volume'])
+
+    # overfit
+    # train_df = train_df[(train_df.stock_id == 0) | (train_df.stock_id == 1)]
+    # val_df = val_df[(val_df.stock_id ==val_df.stock_id.min()) |(val_df.stock_id ==val_df.stock_id.min()+1)  ]
+    #test_df = train_df
+
+
 
     #############################################################################
 
@@ -445,7 +462,7 @@ def create_set_from_snp(inputdir: str, outputdir: str, split_date_factor=0.5):
 if __name__ == "__main__":
     np.random.seed(42)
     inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_plus_ma20_5'
+    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v1_ma20'
     create_set_from_snp(inputdir, outputdir, split_date_factor=0.5)
     # create_set_from_stocks_out_and_in_snp(inputdir, outputdir  ,split_date_factor= 0.5 )
 

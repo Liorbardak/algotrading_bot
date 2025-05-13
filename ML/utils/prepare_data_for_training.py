@@ -329,7 +329,6 @@ def create_set_from_snp(inputdir : str , outputdir:str,    split_date_factor = 0
 
     #Get the train + val data on training dates
     train_df, train_norm_factors,_  = get_normalized_training_data(inputdir, train_stocks , start_train_date , end_train_date )
-
     val_df, val_norm_factors ,_ = get_normalized_training_data(inputdir, val_stocks, start_train_date, end_train_date)
     test_df, test_norm_factors ,test_df_orig = get_normalized_training_data(inputdir, train_stocks , start_test_date , end_test_date )
     ########################## TODO - remove ###################################################

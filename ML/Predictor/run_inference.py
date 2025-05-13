@@ -156,7 +156,6 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     model = get_model(params['model_type'], params,inference_loader.dataset , checkpoint_to_load )
 
     # Predict
-
     prediction_items  = model.predict(inference_loader, return_x=True)
 
     predictions = prediction_items[0].cpu().numpy()
@@ -204,8 +203,9 @@ def main():
 
     os.makedirs(outdir, exist_ok=True)
 
-    run_inference(db_path, outdir ,params,  display = False, dbname ='train_stocks.csv')
+    run_inference(db_path, outdir ,params,  display = False, dbname ='test_stocks.csv')
 
+    #run_inference(db_path, outdir ,params,  display = False, dbname ='train_stocks.csv')
 
 if __name__ == "__main__":
     main()
