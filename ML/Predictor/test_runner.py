@@ -40,16 +40,16 @@ def main():
     outdir = f"{basedir}/training/{params['db']}_{params['model_type']}"
     inference_outdir = f"{basedir}/results/inference/{params['db']}_{params['model_type']}"
     checkpoint_to_load =  args.cp
-    if  checkpoint_to_load == "":
-        params['checkpoint_to_load'] = os.path.join(outdir, "checkpoints", "best-checkpoint.ckpt")
+
 
     if (args.t == "all") or (args.t == "training") :
         run_training(datadir, outdir, params)
     if (args.t == "all") or (args.t == "inference") :
-
+        if checkpoint_to_load == "":
+            params['checkpoint_to_load'] = os.path.join(outdir, "checkpoints", "best-checkpoint.ckpt")
         run_inference(datadir, inference_outdir, params)
 
 
 if __name__ == "__main__":
-    run_serial_tests()
-    #main()
+    #run_serial_tests()
+    main()

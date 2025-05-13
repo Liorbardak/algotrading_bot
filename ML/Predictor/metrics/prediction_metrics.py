@@ -1,4 +1,4 @@
-
+import sys
 import os
 import numpy as np
 import pandas as pd
@@ -7,6 +7,8 @@ import json
 from typing import List
 import seaborn as sns
 from basic_code.utils.report_utils import HtmlReport
+#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ML.Predictor.config.config import get_config
 
 def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outputdir : str , prediction_times : List , display : bool = False ):
 
@@ -33,9 +35,11 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
             df_with_gt.loc[sdf.index, [f"pred_err{t}"]] = sdf[f"pred_err{t}"]
 
 
-    df_with_gt = df_with_gt[df_with_gt['ticker'] == df_with_gt['ticker'].values[0]]
+    #df_with_gt = df_with_gt[df_with_gt['ticker'] == df_with_gt['ticker'].values[0]]
+
     report = HtmlReport()
     for ticker, sdf in  df_with_gt.groupby('ticker'):
+        print(ticker)
         for t in sorted(prediction_times):
 
             fig = plt.figure(figsize=(20, 15))
@@ -44,7 +48,6 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
                     plt.plot(pdf.date.values,pdf.close.values ,label = f"price")
                     plt.plot(pdf.date.values,pdf[f"pred_gt{t}"].values, label=f"gt pred {t}")
                 plt.plot(pdf.date.values,pdf[f"pred{t}" ].values,label = f" pred {t} {predictor}")
-
             plt.legend()
             report.add_figure(f"{ticker} pred {t}", fig)
             plt.close("all")
@@ -71,9 +74,12 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
 
 
 if __name__ == "__main__":
+    params = get_config()
     params = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'training_config.json')))
+
     dbname = params['db']
     predictors = ['lstm1','lstm2','simp_tf' , 'tft', 'rls']
+    predictors = ['tft']
     prediction_times = [1,2,5]
     results_dir = f"C:/Users/dadab/projects/algotrading/results/inference"
     outputdir = f"C:/Users/dadab/projects/algotrading/results/eval"

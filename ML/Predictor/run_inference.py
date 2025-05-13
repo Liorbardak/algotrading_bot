@@ -171,7 +171,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
         normfact = normalization_factor[ticker + 'normFact']
         r = {'ticker':ticker , 'date': date }
         for i, pred in enumerate(prediction):
-            r['pred' + str(i)] = pred / normfact
+            r['pred' + str(i + 1)] = pred / normfact
         rows.append(r)
         if(display):
             if time_idx[0] % 20 == 0:
