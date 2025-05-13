@@ -24,5 +24,5 @@ Training
 Predictor 
 - Run prepare_data_for_training.py for Create the training/validation/test data
 - run training:  python  ML\Predictor\run_training.py
-- run trained predictor , create data frame with predictions - run_inference.py
+- run trained predictor , create data frame with predictions -  python  ML\Predictor\run_inference.py
       

@@ -52,9 +52,10 @@ class TFTLightningWrapper(pl.LightningModule):
         loss_value = self.tft.loss.loss(prediction[0], y[0])
         loss_value = loss_value.mean()
         # Log the loss
-        self.log(f"{stage}_loss", loss_value.mean(), on_epoch=True, prog_bar=True)
-        self.log('lr', self.learning_rate, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"{stage}_loss", loss_value.mean(), on_epoch=True, prog_bar=True ,batch_size= y[0].size()[0] )
+        self.log('lr', self.learning_rate, on_epoch=True, prog_bar=True, logger=True,batch_size=y[0].size()[0])
         return loss_value
+        # Fix the warning by passing batch_size explicitly
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx, "train")

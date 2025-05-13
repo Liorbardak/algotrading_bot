@@ -70,9 +70,6 @@ def get_loaders(datadir, max_prediction_length = 20 , max_encoder_length = 60 , 
             time_varying_known_categoricals=[],
             time_varying_known_reals=["time_idx"],
             time_varying_unknown_categoricals=[],
-            # time_varying_unknown_reals=[
-            #     "open", "high", "low", "close", "volume",
-            # ],
             time_varying_unknown_reals=features,
             target_normalizer=GroupNormalizer(
                 groups=["stock_id"], transformation="softplus"
@@ -106,12 +103,9 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     else:
         # Get the training loader first
-        df_train = pd.read_csv(os.path.join(datadir, 'train_stocks.csv'))
-        df_val = pd.read_csv(os.path.join(datadir, 'val_stocks.csv'))
-        data_all_train_data = pd.concat([df_train, df_val]).reset_index(drop=True)
-        training_cutoff = data_all_train_data["time_idx"].max() - max_prediction_length
-        training = TimeSeriesDataSet(
-            data=data_all_train_data[data_all_train_data.time_idx <= training_cutoff],
+
+        dataset = TimeSeriesDataSet(
+            data=data,
             time_idx="time_idx",
             target="close",
             group_ids=["stock_id"],
@@ -123,9 +117,6 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
             time_varying_known_categoricals=[],
             time_varying_known_reals=["time_idx"],
             time_varying_unknown_categoricals=[],
-            # time_varying_unknown_reals=[
-            #     "open", "high", "low", "close", "volume",
-            # ],
             time_varying_unknown_reals=features,
             target_normalizer=GroupNormalizer(
                 groups=["stock_id"], transformation="softplus"
@@ -144,8 +135,52 @@ def get_loader(datadir,filename, max_prediction_length = 20 , max_encoder_length
             }
         )
         # Get the inference loader
-        inference = TimeSeriesDataSet.from_dataset(training, data, stop_randomization=True)
-        loader = inference.to_dataloader(train=False, batch_size=batch_size, num_workers=0)
+        loader = dataset.to_dataloader(batch_size=batch_size, shuffle=shuffle)
+        #loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+
+
+    # # Get the training loader first
+        # df_train = pd.read_csv(os.path.join(datadir, 'train_stocks.csv'))
+        # df_val = pd.read_csv(os.path.join(datadir, 'val_stocks.csv'))
+        # data_all_train_data = pd.concat([df_train, df_val]).reset_index(drop=True)
+        # training_cutoff = data_all_train_data["time_idx"].max() - max_prediction_length
+        # training = TimeSeriesDataSet(
+        #     data=data_all_train_data[data_all_train_data.time_idx <= training_cutoff],
+        #     time_idx="time_idx",
+        #     target="close",
+        #     group_ids=["stock_id"],
+        #     min_encoder_length=max_encoder_length,  # Minimum history length
+        #     max_encoder_length=max_encoder_length,  # Maximum history length
+        #     min_prediction_length=1,
+        #     max_prediction_length=max_prediction_length,
+        #     static_categoricals=["ticker"],
+        #     time_varying_known_categoricals=[],
+        #     time_varying_known_reals=["time_idx"],
+        #     time_varying_unknown_categoricals=[],
+        #     # time_varying_unknown_reals=[
+        #     #     "open", "high", "low", "close", "volume",
+        #     # ],
+        #     time_varying_unknown_reals=features,
+        #     target_normalizer=GroupNormalizer(
+        #         groups=["stock_id"], transformation="softplus"
+        #     ),
+        #     add_relative_time_idx=True,
+        #     add_target_scales=True,
+        #     add_encoder_length=True,
+        #     allow_missing_timesteps=True,  # Allow gaps in time series data
+        #
+        #     categorical_encoders={
+        #         "group_id": NaNLabelEncoder(add_nan=True),
+        #         # allow unknown categories - for inference over new categories
+        #         "ticker_id": NaNLabelEncoder(add_nan=True),
+        #         "ticker": NaNLabelEncoder(add_nan=True),
+        #         "__group_id__ticker_id": NaNLabelEncoder(add_nan=True),  # optional: auto-created if group_ids used
+        #     }
+        # )
+        # # Get the inference loader
+        # inference = TimeSeriesDataSet.from_dataset(training, data, stop_randomization=True)
+        # loader = inference.to_dataloader(train=False, batch_size=batch_size, num_workers=0)
 
 
 

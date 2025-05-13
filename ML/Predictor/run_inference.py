@@ -1,4 +1,5 @@
 import json
+import time
 import os
 import sys
 import pickle
@@ -156,7 +157,11 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     model = get_model(params['model_type'], params,inference_loader.dataset , checkpoint_to_load )
 
     # Predict
+    print("prediction start")
     prediction_items  = model.predict(inference_loader, return_x=True)
+    print("prediction end")
+    time.sleep(60)
+    print(prediction_items)
 
     predictions = prediction_items[0].cpu().numpy()
     x = prediction_items[1]
@@ -199,7 +204,7 @@ def main():
     outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{dbtrain_name}_{params['model_type']}"
 
 
-    params['checkpoint_to_load'] = os.path.join(checkpoint_path, "checkpoints", "best-checkpoint.ckpt")
+    params['checkpoint_to_load'] = os.path.join(checkpoint_path, "checkpoints", "best-checkpoint.ckpt") # TODO - best-checkpoint may not be the last one
 
     os.makedirs(outdir, exist_ok=True)
 

@@ -74,6 +74,12 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
 
 
 if __name__ == "__main__":
+    # Prevent sleep
+    import ctypes
+    ES_CONTINUOUS = 0x80000000
+    ES_SYSTEM_REQUIRED = 0x00000001
+    ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
     params = get_config()
     params = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'training_config.json')))
 
