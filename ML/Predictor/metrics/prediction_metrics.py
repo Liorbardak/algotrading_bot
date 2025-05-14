@@ -10,7 +10,7 @@ from basic_code.utils.report_utils import HtmlReport
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ML.Predictor.config.config import get_config
 
-def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outputdir : str , prediction_times : List , display : bool = False ):
+def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outputdir : str , prediction_times : List  ):
 
     # Combine all predictors data
     df_with_gt = []
@@ -25,6 +25,9 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
         df_with_gt[f"pred_gt{t}"] = np.nan
         df_with_gt[f"pred_err{t}"] = np.nan
 
+    # Take part TODO - remove
+    #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(sorted(list(set(df_with_gt['ticker'].values)))[:10])]
+    #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(['ENPH','SMCI', 'AXON' , 	'BLDR'])]
 
     for ticker, sdf in  df_with_gt.groupby(['ticker','predictor']):
         sdf = sdf.sort_values(by='date')
@@ -35,7 +38,6 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
             df_with_gt.loc[sdf.index, [f"pred_err{t}"]] = sdf[f"pred_err{t}"]
 
 
-    #df_with_gt = df_with_gt[df_with_gt['ticker'] == df_with_gt['ticker'].values[0]]
 
     report = HtmlReport()
     for ticker, sdf in  df_with_gt.groupby('ticker'):
@@ -61,19 +63,24 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
 
 
     res = []
+    res_per_stock = []
     for pred, sdf in  df_with_gt.groupby('predictor'):
         for t in sorted(prediction_times):
             perr = sdf.dropna(subset=[f"pred_err{t}"])
-            print(perr[f"pred_err{t}"].values.mean() )
+
             res.append({'predictor':pred, 't_pred' : t , 'rms' : np.sqrt(np.mean(perr[f"pred_err{t}"].values**2)),
                         'median': np.median(perr[f"pred_err{t}"].values)})
+            for ticker, sperr in  perr.groupby('ticker'):
+                res_per_stock.append({'predictor':pred,'ticker' : ticker, 't_pred' : t , 'rms' : np.sqrt(np.mean(sperr[f"pred_err{t}"].values**2)),
+                            'median': np.median(sperr[f"pred_err{t}"].values)})
+
+    #print(pd.DataFrame(res_per_stock))
     print(pd.DataFrame(res))
-    report.add_df('results (error normalized to first price)' ,pd.DataFrame(res) )
+    report.add_df('error per ticker', pd.DataFrame(res_per_stock))
+    report.add_df('results (error normalized to first price)', pd.DataFrame(res))
     report.to_file(os.path.join(outputdir , f'prediction_metric_report_{dbname}.html'))
 
-
-
-if __name__ == "__main__":
+def run_metrics(predictors):
     # Prevent sleep
     import ctypes
     ES_CONTINUOUS = 0x80000000
@@ -81,12 +88,15 @@ if __name__ == "__main__":
     ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
 
     params = get_config()
-    params = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'training_config.json')))
+
 
     dbname = params['db']
-    predictors = ['lstm1','lstm2','simp_tf' , 'tft', 'rls']
-    predictors = ['tft']
-    prediction_times = [1,2,5]
+    prediction_times = [1, 2, 5]
     results_dir = f"C:/Users/dadab/projects/algotrading/results/inference"
     outputdir = f"C:/Users/dadab/projects/algotrading/results/eval"
-    run_prediction_metrics(dbname, predictors, results_dir,outputdir, prediction_times)
+    run_prediction_metrics(dbname, predictors, results_dir, outputdir, prediction_times)
+
+
+if __name__ == "__main__":
+    #run_metrics(predictors= ['lstm1', 'lstm2', 'simp_tf', 'tft', 'rls'])
+    run_metrics(predictors=['lstm1'])

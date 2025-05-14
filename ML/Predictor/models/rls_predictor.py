@@ -2,7 +2,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from ML.Predictor.config.config import get_config
 
 def rls_predictor(signal, filter_order=4, delta=0.01, lam=0.99,pred=1):
     """
@@ -66,11 +66,10 @@ def run_predictor(datadir: str, outputdir : str, pred_len : int  = 15):
     df.to_csv(os.path.join(outputdir, 'ticker_data_with_prediction.csv'))
 
 if __name__ == "__main__":
-    params = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'training_config.json')))
-
+    params = get_config()
     ddname = params['db']
     datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
-    outdir = f"C:/Users/dadab/projects/algotrading/results/{ddname}_rls"
+    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{ddname}_rls"
     run_predictor(datadir, outdir)
 
 

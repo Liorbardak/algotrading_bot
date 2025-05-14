@@ -7,8 +7,8 @@ def run_serial_tests():
     # run list of trainings
     basedir = 'C:/Users/dadab/projects/algotrading'
     params = get_config()
-    #for model in ["simp_tf" , 'tft' ,'lstm1' ,'lstm2']:
-    for model in ['tft']:
+    for model in ['lstm1']:
+    #for model in ['tft']:
         params['model_type'] = model
         datadir = f'{basedir}/data/training/{params['db']}/'
         outdir = f"{basedir}/training/{params['db']}_{params['model_type']}"
@@ -51,5 +51,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #run_serial_tests()
-    main()
+    run_serial_tests()
+    #main()
