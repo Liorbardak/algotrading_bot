@@ -13,6 +13,7 @@ class Seq2SeqLSTM(L.LightningModule):
 
 
     def forward(self, x):
+        # x: [ batch, seq_len,  features]
         _, (hn, _) = self.lstm(x)  # hn: [1, batch, hidden]
         out = self.fc(hn[-1])      # [batch, output_len]
         return out

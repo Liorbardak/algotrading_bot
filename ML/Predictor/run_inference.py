@@ -63,8 +63,8 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
     batch_size = 64
 
     os.makedirs(outputdir, exist_ok=True)
-    # load normalization factors
-    normalization_factor = pickle.load(open(os.path.join(datadir,dbname.split('.')[0] + '_norm_factors.pkl'),'rb'))
+    # load the global normalization factors
+    normalization_factor = pickle.load(open(os.path.join(datadir,'norm_factors.pkl'),'rb'))
 
     # Load the model
     inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
@@ -87,6 +87,10 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
 
             output_cpu = output.cpu().numpy()
 
+            # add last sample (which is normalized to 1)
+            output_cpu = output_cpu + 1
+            output_cpu_gt = output_cpu_gt + 1
+
 
             print(loss)
             # Store predictions
@@ -101,8 +105,11 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
                 normfact = normalization_factor[data['stock'] + 'normFact']
 
                 r = {'ticker': data['stock'], 'date': data['date']}
+
+                # Renormalize -TODO revisit , maybe omit the  normalization_factor
+
                 for i, pred in enumerate(output_cpu[idx]):
-                    r['pred' + str(i+1)] = pred / normfact
+                    r['pred' + str(i+1)] = pred * data['norm_factor']  / normfact
                 rows.append(r)
 
                 if(display) & (idx in ids_to_show) :
@@ -142,8 +149,6 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
 
     normalization_factor = pickle.load(open(os.path.join(datadir,dbname.split('.')[0] + '_norm_factors.pkl'),'rb'))
     stock_data = pd.read_csv(os.path.join(datadir,dbname))
-    # load model dataset params -
-    #dataset_parameters = pickle.load(open(os.path.join(os.path.dirname(checkpoint_to_load), 'model_dataset_params.pkl'), 'rb'))
 
     # ID to name
     id_to_name = dict()

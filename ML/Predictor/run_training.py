@@ -40,12 +40,11 @@ def run_training(datadir : str ,outdir: str ,params : Dict ):
         verbose=True
     )
 
-    data_step = 10 # take every step sample
     torch.set_float32_matmul_precision('medium')
 
     print('get loaders')
     train_loader, val_loader= get_loaders(datadir, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
-                                          , step=data_step ,  loader_type = params['model_type'], batch_size=params['batch_size'],
+                                          , step=params['train_data_step']  ,  loader_type = params['model_type'], batch_size=params['batch_size'],
                                           features =params['features'])
 
     print('get model ')

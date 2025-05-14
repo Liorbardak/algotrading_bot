@@ -29,11 +29,13 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
     #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(sorted(list(set(df_with_gt['ticker'].values)))[:10])]
     #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(['ENPH','SMCI', 'AXON' , 	'BLDR'])]
 
+
     for ticker, sdf in  df_with_gt.groupby(['ticker','predictor']):
         sdf = sdf.sort_values(by='date')
         for t in sorted(prediction_times):
             sdf[f"pred_gt{t}"] = np.hstack([sdf.close.values[t:], np.ones(t, ) * sdf.close.values[-1]])
-            sdf[f"pred_err{t}"] =np.abs(sdf[f"pred{t}" ].values - sdf[f"pred_gt{t}"].values) / sdf['close'].values[0] # error normalized to the first price
+            #sdf[f"pred_err{t}"] =np.abs(sdf[f"pred{t}" ].values - sdf[f"pred_gt{t}"].values) / sdf['close'].values[0] # error normalized to the first price
+            sdf[f"pred_err{t}"] = np.abs(sdf[f"pred{t}"].values - sdf[f"pred_gt{t}"].values) / sdf['close'].values  # error as percentage of the price
             df_with_gt.loc[sdf.index, [f"pred_gt{t}"]] = sdf[f"pred_gt{t}"]
             df_with_gt.loc[sdf.index, [f"pred_err{t}"]] = sdf[f"pred_err{t}"]
 
@@ -77,7 +79,7 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
     #print(pd.DataFrame(res_per_stock))
     print(pd.DataFrame(res))
     report.add_df('error per ticker', pd.DataFrame(res_per_stock))
-    report.add_df('results (error normalized to first price)', pd.DataFrame(res))
+    report.add_df('results (error as percentage of price)', pd.DataFrame(res))
     report.to_file(os.path.join(outputdir , f'prediction_metric_report_{dbname}.html'))
 
 def run_metrics(predictors):
@@ -99,4 +101,4 @@ def run_metrics(predictors):
 
 if __name__ == "__main__":
     #run_metrics(predictors= ['lstm1', 'lstm2', 'simp_tf', 'tft', 'rls'])
-    run_metrics(predictors=['lstm1'])
+    run_metrics(predictors=['rls','tft', 'lstm1','simp_tf'])

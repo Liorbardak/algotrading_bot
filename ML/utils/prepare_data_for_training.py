@@ -491,16 +491,16 @@ def create_set(inputdir: str, outputdir: str, all_training_stocks: np.array, all
 
 
     #############################################################################
+    pickle.dump(all_norm_factors, open(os.path.join(outputdir, 'norm_factors.pkl'), 'wb'))
+
 
     train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
-    pickle.dump(all_norm_factors, open(os.path.join(outputdir, 'train_stocks_norm_factors.pkl'), 'wb'))
 
     val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
-    pickle.dump(all_norm_factors, open(os.path.join(outputdir, 'val_stocks_norm_factors.pkl'), 'wb'))
 
     test_df.to_csv(os.path.join(outputdir, 'test_stocks.csv'))
     test_df_orig.to_csv(os.path.join(outputdir, 'test_df_orig.csv'))
-    pickle.dump(all_norm_factors, open(os.path.join(outputdir, 'test_stocks_norm_factors.pkl'), 'wb'))
+
 
 
 def create_set_from_snp(inputdir: str, outputdir: str, split_date_factor=0.5 , add_stocks_outof_snp = 0,

@@ -1,8 +1,9 @@
 {
-  "model_type" : "tft",
+  "model_type" : "simp_tf",
   "_comment": "simp_tf , tft ,lstm1 ,lstm2 ",
   "db" : "snp_v1_ma20",
   "lr" : 1e-3 ,
+  "train_data_step" : 5,
   "batch_size" : 64,
   "input_len": 5,
   "pred_len" : 5,
