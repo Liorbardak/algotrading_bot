@@ -46,6 +46,12 @@ def run_inference(datadir, outputdir ,  params ,display = False , dbname = 'test
 
     # merge & save to the output
     merged_df = pd.merge(df, pred_df, on=['ticker','date'], how='outer')
+
+    #omit stocks that should not be there - take only snp
+    snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500/all_stocks.csv')
+    snp_stocks = list(set(snp['ticker']))
+    merged_df = merged_df[merged_df["ticker"].isin(snp_stocks)]
+
     merged_df.to_csv(os.path.join(outputdir,'ticker_data_with_prediction.csv'))
 
 
@@ -67,8 +73,8 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
     normalization_factor = pickle.load(open(os.path.join(datadir,'norm_factors.pkl'),'rb'))
 
     # Load the model
-    inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
-                                   , batch_size=batch_size , shuffle=False, get_meta = True , loader_type = params['model_type'] )
+    inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length'],
+                                  features = params['features'] , batch_size=batch_size , shuffle=False, get_meta = True , loader_type = params['model_type'] )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     #device ="cpu"
     model = get_model(params['model_type'], params,inference_loader.dataset , checkpoint_to_load )
@@ -132,7 +138,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
     pd.DataFrame(rows).to_csv(os.path.join(outputdir, 'predictions.csv'))
 
 
-def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=False , dbname = 'train_stocks.csv' ):
+def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=False , dbname = 'test_stocks.csv' ):
     '''
     Run inference and save results with tft model
     :param datadir:
@@ -147,7 +153,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
 
     os.makedirs(outputdir, exist_ok=True)
 
-    normalization_factor = pickle.load(open(os.path.join(datadir,dbname.split('.')[0] + '_norm_factors.pkl'),'rb'))
+    normalization_factor = pickle.load(open(os.path.join(datadir,'norm_factors.pkl'),'rb'))
     stock_data = pd.read_csv(os.path.join(datadir,dbname))
 
     # ID to name
@@ -156,7 +162,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
         id_to_name[df['stock_id'].values[0]] = n
 
     inference_loader  = get_loader(datadir, dbname, max_prediction_length = params['pred_len'] , max_encoder_length = params['max_encoder_length']
-                                   , batch_size=batch_size , shuffle=False, get_meta = True, loader_type = params['model_type']  )
+                                   , batch_size=batch_size , shuffle=False, get_meta = True, loader_type = params['model_type']  ,features=params['features'] )
 
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = get_model(params['model_type'], params,inference_loader.dataset , checkpoint_to_load )
@@ -166,7 +172,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
     prediction_items  = model.predict(inference_loader, return_x=True)
     print("prediction end")
     time.sleep(60)
-    print(prediction_items)
+    #print(prediction_items)
 
     predictions = prediction_items[0].cpu().numpy()
     x = prediction_items[1]
@@ -175,8 +181,13 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
 
     rows = []
     for prediction,group_id, time_idx in  zip(predictions,group_ids,decoder_time_idx):
+
         ticker = id_to_name[group_id]
-        date = stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == time_idx[0]-1)].date.values[0]
+        # get the date for prediction (-1 of the first time_idx )
+        df = stock_data[(stock_data.stock_id == group_id) & (stock_data.time_idx == time_idx[0] - 1)]
+
+
+        date = df.date.values[0]
 
         normfact = normalization_factor[ticker + 'normFact']
         r = {'ticker':ticker , 'date': date }
@@ -197,7 +208,7 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
                 plt.title(f' {ticker}  {time_idx[0]}')
                 plt.show()
 
-
+    predictions = pd.DataFrame(rows)
     pd.DataFrame(rows).to_csv(os.path.join(outputdir,'predictions.csv'))
 
 def main():

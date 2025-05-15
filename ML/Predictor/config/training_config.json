@@ -1,14 +1,18 @@
 {
-  "model_type" : "simp_tf",
-  "_comment": "simp_tf , tft ,lstm1 ,lstm2 ",
-  "db" : "snp_v1_ma20",
+  "model_type" : "tft",
+  "_comment": "simp_tf , tft ,lstm1 ,lstm2",
+  "db" : "snp_v5_ma20",
   "lr" : 1e-3 ,
   "train_data_step" : 5,
   "batch_size" : 64,
   "input_len": 5,
   "pred_len" : 5,
   "max_encoder_length" : 64,
-  "max_epoch" : 50,
+  "max_epoch" : 30,
   "checkpoint_to_load": "",
-  "features": "open,high,low,close,volume"
+  "features": "open,high,low,close,volume",
+  "features_normalize_together": "open,high,low,close,volume",
+  "_features": "open,high,low,close,volume,rsi,stoch,ma20,ma50",
+  "_features_normalize_together": "open,high,low,close,volume,ma20,ma50",
+  "ref_feature": "close"
 }

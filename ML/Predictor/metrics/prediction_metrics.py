@@ -25,7 +25,7 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
         df_with_gt[f"pred_gt{t}"] = np.nan
         df_with_gt[f"pred_err{t}"] = np.nan
 
-    # Take part TODO - remove
+    # Patrial test TODO - remove
     #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(sorted(list(set(df_with_gt['ticker'].values)))[:10])]
     #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(['ENPH','SMCI', 'AXON' , 	'BLDR'])]
 
@@ -93,12 +93,12 @@ def run_metrics(predictors):
 
 
     dbname = params['db']
-    prediction_times = [1, 2, 5]
+    prediction_times = [5]
     results_dir = f"C:/Users/dadab/projects/algotrading/results/inference"
     outputdir = f"C:/Users/dadab/projects/algotrading/results/eval"
     run_prediction_metrics(dbname, predictors, results_dir, outputdir, prediction_times)
 
 
 if __name__ == "__main__":
-    #run_metrics(predictors= ['lstm1', 'lstm2', 'simp_tf', 'tft', 'rls'])
-    run_metrics(predictors=['rls','tft', 'lstm1','simp_tf'])
+    run_metrics(predictors= ['lstm1',  'simp_tf', 'tft', 'rls'])
+    #run_metrics(predictors=['tft'])

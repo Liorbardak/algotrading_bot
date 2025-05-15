@@ -13,10 +13,10 @@ from lstm_predictor import Seq2SeqLSTM, Seq2SeqLSTM2
 def get_model(model_type : str, parameters : dict , dataset = None , checkpoint_to_load : str = None):
     if model_type == 'simp_tf':
         if checkpoint_to_load == "":
-            model = LitStockPredictor(model=TimeSeriesTransformer(pred_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
+            model = LitStockPredictor(model=TimeSeriesTransformer(input_size = parameters['input_len'] , pred_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
         else:
             model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load,
-                                                           model=TimeSeriesTransformer(pred_len=parameters['pred_len']),
+                                                           model=TimeSeriesTransformer(input_size = parameters['input_len'] ,pred_len=parameters['pred_len']),
                                                            params  = {'lr' : parameters['lr'] ,'loss': nn.MSELoss()})
 
     elif model_type == 'lstm1':

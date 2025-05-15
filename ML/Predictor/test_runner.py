@@ -3,21 +3,40 @@ import argparse
 from config.config import get_config
 from run_inference import run_inference
 from run_training import run_training
-def run_serial_tests():
-    # run list of trainings
+from ML.Predictor.metrics.prediction_metrics import run_prediction_metrics
+from ML.Predictor.models.rls_predictor import run_rls_predictor
+def run_serial_tests(dataset : str = "" ,  predictors = ['simp_tf' , 'lstm1', 'tft']):
+    # run list of trainings/inference/metric
     basedir = 'C:/Users/dadab/projects/algotrading'
     params = get_config()
-    for model in ['lstm1']:
-    #for model in ['tft']:
-        params['model_type'] = model
-        datadir = f'{basedir}/data/training/{params['db']}/'
+    if dataset != "":
+        params['db'] = dataset
+
+
+    datadir = f'{basedir}/data/training/{params['db']}/'
+    for predictor in predictors:
+        params['model_type'] = predictor
         outdir = f"{basedir}/training/{params['db']}_{params['model_type']}"
         inference_outdir = f"{basedir}/results/inference/{params['db']}_{params['model_type']}"
 
+        params['checkpoint_to_load'] = ""
         run_training(datadir, outdir, params)
-        params['checkpoint_to_load'] = os.path.join(outdir, "checkpoints", "best-checkpoint.ckpt")
 
+        params['checkpoint_to_load'] = os.path.join(outdir, "checkpoints", "best-checkpoint.ckpt")
         run_inference(datadir, inference_outdir, params)
+
+    # Run rls
+    run_rls_predictor(datadir , f"{basedir}/results/inference/{params['db']}_{'rls'}")
+
+
+    prediction_times = [5]
+    results_dir = f"C:/Users/dadab/projects/algotrading/results/inference"
+    metric_output = f"C:/Users/dadab/projects/algotrading/results/eval"
+    run_prediction_metrics(params['db'], predictors + ['rls'], results_dir, metric_output, prediction_times)
+
+
+
+
 
 def main():
     basedir = 'C:/Users/dadab/projects/algotrading'
@@ -51,5 +70,9 @@ def main():
 
 
 if __name__ == "__main__":
-    run_serial_tests()
+    run_serial_tests("snp_v4_ma20")
+    run_serial_tests("snp_v5_ma20")
+    run_serial_tests("snp_v4")
+    run_serial_tests("snp_v5")
+
     #main()

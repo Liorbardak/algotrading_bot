@@ -1,5 +1,6 @@
 import os
 import torch
+import copy
 import torch.nn as nn
 import pytorch_lightning as pl
 from fontTools.misc.bezierTools import epsilon
@@ -14,14 +15,14 @@ from pytorch_forecasting.data import GroupNormalizer
 from pytorch_forecasting.data.encoders import NaNLabelEncoder
 
 class StockDataset(Dataset):
-    def __init__(self, df, seq_len=60, pred_len=2 , step = 1 , get_meta = False, features=['open', 'high', 'low', 'close', 'volume']):
+    def __init__(self, df, seq_len=60, pred_len=2 , step = 1 , get_meta = False, features=['open', 'high', 'low', 'close', 'volume'] ,
+                 features_to_normalize = ['open', 'high', 'low', 'close', 'volume','ma20','ma50']):
         self.seq_len = seq_len
         self.pred_len = pred_len
         self.samples = []
         self.meta = []
-        features_to_normalize = ['open', 'high', 'low', 'close', 'volume']
         reference_feature=   'close'
-        features_to_normalize_idx = [features.index(f) for f in features_to_normalize]
+        features_to_normalize_idx = [features.index(f) for f in features_to_normalize if f in features]
         reference_feature_idx = features.index(reference_feature)
 
         for ticker in df['ticker'].unique():
@@ -31,13 +32,15 @@ class StockDataset(Dataset):
             dates = stock_df['date'].values
             for i in range(1,len(values) - seq_len - pred_len, step):
 
-                x = values[i:i + seq_len]
-                y = values[i + seq_len:i + seq_len + pred_len, 3]  # prediction GT
+                x = copy.copy(values[i:i + seq_len])
+                y =  copy.copy(values[i + seq_len:i + seq_len + pred_len, reference_feature_idx])  # prediction GT
 
                 # Normalize by the  reference_feature (close price) of the last time in the input
                 reference = x[-1, reference_feature_idx]
                 norm_factor =  (reference+  1e-5)
-                x = x / norm_factor
+                # normalize all related features
+                x[:, features_to_normalize_idx] = x[:, features_to_normalize_idx] / norm_factor
+
                 y = y / norm_factor
                 # let the prediction target to be the offset respect the last normalized price (== 1)   TODO - revisit
                 y = y-1

@@ -26,3 +26,7 @@ Predictor
 - run training:  python  ML\Predictor\run_training.py
 - run trained predictor , create data frame with predictions -  python  ML\Predictor\run_inference.py
       
+
+DB : 
+v4 - with extra features
+v5 - with extra features + 200 stocks outof s&p 

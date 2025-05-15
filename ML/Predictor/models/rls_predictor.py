@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from ML.Predictor.config.config import get_config
 
-def rls_predictor(signal, filter_order=4, delta=0.01, lam=0.99,pred=1):
+def rls_predictor(signal, filter_order=6, delta=0.01, lam=0.99,pred=1):
     """
     RLS adaptive filter for signal prediction.
 
@@ -43,7 +43,7 @@ def rls_predictor(signal, filter_order=4, delta=0.01, lam=0.99,pred=1):
 
 
 
-def run_predictor(datadir: str, outputdir : str, pred_len : int  = 15):
+def run_rls_predictor(datadir: str, outputdir : str, pred_len : int  = 15):
     '''
     Simple rls predictor
     :param datadir:
@@ -70,6 +70,6 @@ if __name__ == "__main__":
     ddname = params['db']
     datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
     outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{ddname}_rls"
-    run_predictor(datadir, outdir)
+    run_rls_predictor(datadir, outdir)
 
 

@@ -2,11 +2,14 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
+import ta
 import shutil
+import pylab as plt
 from typing import Dict, List
 from datetime import datetime
 from copy import deepcopy
-import pylab as plt
+from ML.Predictor.config.config import get_config
+
 
 
 def detect_stocks_with_jumps(inputdir: str, stocks_names: np.array, th=0.7) -> List:
@@ -58,21 +61,26 @@ def re_arange_df(df: pd.DataFrame, ticker: str, stock_id: int, norm_factors: Dic
 
 
 
-    # normalize inputs and store the normalization
+
+
+
+    # Add more features
+    df['rsi'] = ta.momentum.RSIIndicator(df['close']).rsi()/100
+    df['stoch'] = ta.momentum.StochasticOscillator(df['high'] , df['low'] , df['close']).stoch()/100
+    df['ma20'] =  df['close'].rolling(20).mean()
+    df['ma50'] = df['close'].rolling(50).mean()
 
     # Normalize to by scaling (without offset , for now (?))
-    normFact = norm_factors['first_close_scale'] / df['close'].values[0]
+    normFact =1.0 / df['close'].values[0]
     for k in norm_factors['cols_to_pre_normalize_together']:
         df.loc[:, k] = (df[k].astype(float) * normFact).astype(df[k].dtype)
-
-    # TODO - add more features
-
 
     return df, normFact
 
 
-def get_normalized_training_data(inputdir, stock_list_to_use, first_ind = 0, minDate=None, maxDate=None,
+def get_normalized_training_data(inputdir, stock_list_to_use, params : Dict , first_ind = 0, minDate=None, maxDate=None,
                                  min_length: int = 150,ticker_to_id : Dict = None
+
                                  ):
     '''
     Prepare data for training - sort out, normalize , rename , add features ...
@@ -85,13 +93,13 @@ def get_normalized_training_data(inputdir, stock_list_to_use, first_ind = 0, min
     '''
 
     norm_factors = {}
-    norm_factors['cols_to_pre_normalize_together'] = ['open', 'high', 'low', 'close', 'volume']
-    norm_factors['first_close_scale'] = 1.0  # the scale is determined by the first close value
+    norm_factors['cols_to_pre_normalize_together'] = params['features_normalize_together'].split(',')
 
     dfs = []
     dfs_raw = []
     ind = first_ind
-    for ticker in stock_list_to_use:
+    for idx , ticker in enumerate(stock_list_to_use):
+        print(f" {ticker} {idx+1} out of {len(stock_list_to_use)}")
         df = pd.read_excel(os.path.join(inputdir, ticker, 'stockPrice.xlsx'), engine='openpyxl')
 
         # Rename
@@ -140,7 +148,7 @@ def get_normalized_training_data(inputdir, stock_list_to_use, first_ind = 0, min
     # Drop rows with missing values
     train_df = train_df.dropna()
 
-    # Rescale volume and other features on all data
+    # Rescale volume and other features that needs scaling on all data
     cols_to_normalize = ['volume']
     for k in cols_to_normalize:
         norm_factors[k + 'offset'] = np.min(train_df['volume'].values)
@@ -150,137 +158,7 @@ def get_normalized_training_data(inputdir, stock_list_to_use, first_ind = 0, min
     return train_df, norm_factors, raw_df
 
 
-# def preprocess_data_to_train(inputdir : str, outputdir: str ,stock_list_not_to_use : []  ,  stock_list_to_use : np.array  = None,  number_of_stocks_to_use : int =None,
-#                      min_length : int = 150 , val_train_split = 0.7 ,  split_date_factor = 0.5):
-#     '''
-#     Prepare data for training - sort out, normalize , rename , add features
-#     :param inputdir: directory of the raw ticker data
-#     :param outputdir:
-#     :param stock_list_not_to_use:
-#     :param min_length: do not take stocks with too little data
-#     :return:
-#     '''
-#
-#     os.makedirs(outputdir, exist_ok=True)
-#
-#     if len(stock_list_to_use) == 0:
-#         # Take a given set of
-#
-#         # Get all stocks that can be trained on
-#         all_stocks = np.array([d for d in os.listdir(inputdir) if
-#                                (os.path.isdir(os.path.join(inputdir, d)) )])
-#
-#
-#         all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
-#
-#         # Get the nad stocks
-#         bad_stocks = detect_stocks_with_jumps(inputdir, all_stocks,th = 0.3)
-#         stock_list_not_to_use = bad_stocks + stock_list_not_to_use
-#         #bad_stocks = np.array(['MTNB', 'VEON', 'AVXL', 'HITI', 'QXO', 'ANNAW'])
-#
-#         # print('bad_stocks')
-#         # print(len(bad_stocks))
-#         # print(bad_stocks)
-#
-#         # remove bad stocks , add good
-#
-#         #all_stocks = np.array(list(set(all_stocks) | set(good_names)))
-#     else:
-#         all_stocks = stock_list_to_use
-#
-#     all_stocks = np.array(list(set(all_stocks) - set(stock_list_not_to_use)))
-#
-#     print(len(all_stocks))
-#
-#     # randomize
-#     all_stocks = all_stocks[np.random.permutation(len(all_stocks))]
-#
-#     if number_of_stocks_to_use is not None:
-#         all_stocks = all_stocks[:number_of_stocks_to_use]
-#     print('all_stocks  ',len(all_stocks))
-#
-#
-#
-#     norm_factors = {}
-#     norm_factors['cols_to_pre_normalize_together'] =  ['open', 'high', 'low', 'close', 'volume']
-#     norm_factors['first_close_scale'] = 1.0 # the scale is determined by the first close value
-#
-#     # Split df to train and validation
-#     train_stocks = all_stocks[:int(len(all_stocks)*val_train_split)]
-#     val_stocks = all_stocks[int(len(all_stocks)*val_train_split):]
-#
-#     train_df ,train_norm_factors ,_ =  get_normalized_training_data(inputdir , train_stocks )
-#     #save data
-#     train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
-#     # Save normalization
-#     pickle.dump(train_norm_factors, open(os.path.join(outputdir, 'train_norm_factors.pkl'), 'wb'))
-#
-#
-#     val_df, val_norm_factors,_ = get_normalized_training_data(inputdir, val_stocks)
-#     #save data
-#     val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
-#     # Save normalization
-#     pickle.dump(val_norm_factors, open(os.path.join(outputdir, 'val_norm_factors.pkl'), 'wb'))
-#
-#     # dfs = []
-#     # for i, stock_name in enumerate(train_stocks):
-#     #     df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
-#     #     if (len(df) < min_length):
-#     #         continue
-#     #     df, normFact = re_arange_df(df, stock_name,i, norm_factors)
-#     #     dfs.append(df)
-#     #     norm_factors[stock_name + 'normFact'] = normFact
-#     #
-#     # train_df = pd.concat(dfs, ignore_index=True)
-#     # # Fill NA values
-#     # train_df = train_df.fillna(0)
-#     #
-#     # # Create time index - ensure each ticker starts from 0
-#     # train_df =train_df.sort_values(['stock_name', 'date'])
-#     # train_df['time_idx'] = train_df.groupby('stock_name').cumcount()
-#     #
-#     # # Drop rows with missing values
-#     # train_df= train_df.dropna()
-#     #
-#     # # Rescale volume and other features on all data
-#     # cols_to_normalize = ['volume']
-#     # for k in cols_to_normalize:
-#     #     norm_factors[k + 'offset'] =  np.min(train_df['volume'].values)
-#     #     norm_factors[k + 'scale'] = 1.0 / (np.max(train_df['volume'].values) - norm_factors[k + 'offset'])
-#     #     train_df[k] = (train_df[k] -    norm_factors[k + 'offset']) * norm_factors[k + 'scale']
-#     #
-#     # # Save training
-#     # train_df.to_csv(os.path.join(outputdir, 'train_stocks.csv'))
-#     #
-#     # # Get validation set
-#     # dfs = []
-#     # for i, stock_name in enumerate(val_stocks):
-#     #     df = pd.read_excel(os.path.join(inputdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
-#     #     if (len(df) < min_length):
-#     #         continue
-#     #     df, normFact  = re_arange_df(df, stock_name,i, norm_factors)
-#     #     norm_factors[stock_name + 'normFact'] = normFact
-#     #     dfs.append(df)
-#     #
-#     # val_df = pd.concat(dfs, ignore_index=True)
-#     # # Fill NA values
-#     # val_df = val_df.fillna(0)
-#     #
-#     # # Create time index - ensure each ticker starts from 0
-#     # val_df =val_df.sort_values(['stock_name', 'date'])
-#     # val_df['time_idx'] = val_df.groupby('stock_name').cumcount()
-#     #
-#     # #Scale with t
-#     # for k in cols_to_normalize:
-#     #     val_df[k] = (val_df[k] -    norm_factors[k + 'offset']) * norm_factors[k + 'scale']
-#     #
-#     # # Save validation
-#     # val_df.to_csv(os.path.join(outputdir, 'val_stocks.csv'))
-#     #
-#     # # Save normalization
-#     # pickle.dump(norm_factors, open(os.path.join(outputdir, 'norm_factors.pkl'), 'wb'))
-
-def get_good_stocks_out_of_snp(   recalc = False):
+def get_good_stocks_out_of_snp(recalc = False):
     '''
      get "good" stocks to train out of the snp
      :return:
@@ -311,49 +189,12 @@ def get_good_stocks_out_of_snp(   recalc = False):
     else:
         # return the precalcuated "good" stocks
         good_stocks = pickle.load(open('C:/Users/dadab/projects/algotrading/data/training/goodstocks_v2_large.pkl', 'rb'))
+
     return good_stocks
 
 
-# def create_set_from_stocks_out_and_in_snp(inputdir: str, outputdir: str, split_date_factor=0.5):
-#     '''
-#      Create set that include sstocks out of the snp in the tranining and validation , and snp only in the test
-#      :param inputdir:
-#      :param outputdir:
-#      :param split_date_factor:
-#      :return:
-#     '''
-#
-#     os.makedirs(outputdir, exist_ok=True)
-#
-#     # Get "knowen " good stocks
-#     good_names = pickle.load(open('C:/Users/dadab/projects/algotrading/data/training/goodstocks_v0.pkl', 'rb'))
-#     ref2 = pd.read_csv('C:/Users/dadab/projects/algotrading/data/training/obsolete/dbmed4/train_stocks.csv')
-#     names2 = list(set(ref2.stock_name))
-#     all_stocks = np.array(good_names + names2)
-#
-#
-#     # Get all snp stocks to simulate
-#     snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500/all_stocks.csv')
-#     all_dates = np.array(sorted(list(set(snp['date']))))
-#
-#     start_train_date = all_dates[0]
-#     end_train_date = all_dates[int(len(all_dates) * split_date_factor)]
-#
-#     start_test_date = all_dates[int(len(all_dates) * split_date_factor) + 1]
-#     end_test_date = all_dates[-1]
-#     snp_stocks = np.array(list(set(snp['ticker'])))
-#     # add all stocks
-#     all_stocks = np.array(list(set(all_stocks) | set(snp_stocks)))
-#
-#     # Prepare the 3 sets - train & validation from start_train_date to  end_train_date , test - all stocks start_test_date - end_test_date
-#     val_train_split = 0.7
-#
-#     create_set(inputdir, outputdir, all_stocks, snp_stocks, val_train_split, start_train_date, end_train_date,
-#                start_test_date,
-#                end_test_date)
-#
 
-def create_set(inputdir: str, outputdir: str, all_training_stocks: np.array, all_test_stocks: np.array, val_train_split,
+def create_set(inputdir: str, outputdir: str,params : Dict, all_training_stocks: np.array, all_test_stocks: np.array, val_train_split,
                start_train_date, end_train_date, start_test_date, end_test_date , use_ma = False , overfit = False):
     '''
     :param inputdir:
@@ -371,29 +212,18 @@ def create_set(inputdir: str, outputdir: str, all_training_stocks: np.array, all
 
 
     in_train_but_not_in_test = np.array(list(set(all_training_stocks)- set(all_test_stocks)))
-
-    in_train_and_in_test = all_test_stocks[np.random.permutation(len(all_test_stocks))]
-    in_train_but_not_in_test = in_train_but_not_in_test[np.random.permutation(len(in_train_but_not_in_test))]
+    in_train_and_in_test = all_test_stocks
 
     if overfit:
         # overfit
         in_train_and_in_test = in_train_and_in_test[:3]
-        in_train_but_not_in_test= in_train_but_not_in_test[:3]
+        in_train_but_not_in_test= in_train_but_not_in_test[:11]
 
-    train_stocks = in_train_and_in_test[:int(len(in_train_and_in_test) * val_train_split)]
-    val_stocks = in_train_and_in_test[int(len(in_train_and_in_test) * val_train_split):]
-
-    test_stocks = in_train_and_in_test
 
 
     # Get all data
-    all_df, all_norm_factors, all_df_orig = get_normalized_training_data(inputdir, in_train_and_in_test,0)
-    min_date = datetime.strptime(start_train_date, "%Y-%m-%d")
-    max_date = datetime.strptime(end_train_date, "%Y-%m-%d")
-    df_train_val = all_df[all_df['date'].between(min_date, max_date)]
-    # Split train and validation
-    train_df = df_train_val[df_train_val['ticker'].isin(train_stocks)]  # Only rows where category is A or B
-    val_df = df_train_val[~df_train_val['ticker'].isin(train_stocks)]
+    all_df, all_norm_factors, all_df_orig = get_normalized_training_data(inputdir, in_train_and_in_test,params=params)
+
 
     # Get  test set on later times
     min_date = datetime.strptime(start_test_date, "%Y-%m-%d")
@@ -402,73 +232,40 @@ def create_set(inputdir: str, outputdir: str, all_training_stocks: np.array, all
     test_df_orig = all_df_orig[all_df_orig['date'].between(min_date, max_date)]
 
 
-
-
-
-
-
-    #split to train, validation & test
-
-
-
-
-    # # Get the train + val data on training dates
-    # train_df, train_norm_factors, _ = get_normalized_training_data(inputdir, train_stocks,0, start_train_date,
-    #                                                                end_train_date)
-    #
-    # val_df, val_norm_factors, _ = get_normalized_training_data(inputdir, val_stocks,np.max(list(set(train_df.stock_id))) + 1,  start_train_date, end_train_date)
-
-
-    # Add extra stocks only to the train and validation sets
+    # Add extra stocks - only to the train and validation sets
     if(len(in_train_but_not_in_test) > 10):
-        # Split extra data
-        extra_df, extra_norm_factors, _ = get_normalized_training_data(inputdir, in_train_and_in_test, 0,
-                                                                           start_train_date,
-                                                                           end_train_date)
+        # get  extra data for training
 
-        extra_train_stocks = in_train_but_not_in_test[:int(len(in_train_but_not_in_test) * val_train_split)]
-        extra_val_stocks = in_train_but_not_in_test[int(len(in_train_but_not_in_test) * val_train_split):]
-
-        # Add extra data
-        extra_train_df, extra_train_norm_factors, _ = get_normalized_training_data(inputdir, extra_train_stocks,  np.max(list(set(val_df.stock_id))) + 1, start_train_date,
-                                                                       end_train_date)
-
-        extra_val_df, extra_val_norm_factors, _ = get_normalized_training_data(inputdir, extra_val_stocks,
-                                                                   np.max(list(set(extra_train_df.stock_id))) + 1,
-                                                                   start_train_date, end_train_date)
-
+        extra_df, extra_norm_factors, _ = get_normalized_training_data(inputdir, in_train_but_not_in_test,
+                                                                            params=params,
+                                                                            first_ind=all_df.stock_id.max() + 1,
+                                                                           minDate = start_train_date,
+                                                                           maxDate = end_train_date
+                                                                           )
         # merge
-        # train_norm_factors.update(extra_train_norm_factors)
-        # val_norm_factors.update(extra_val_norm_factors)
-        #
-        # train_df = pd.concat([train_df, extra_train_df]).reset_index(drop=True)
-        # val_df = pd.concat([val_df, extra_val_df]).reset_index(drop=True)
+        all_df = pd.concat([all_df, extra_df]).reset_index(drop=True)
+        all_norm_factors.update(extra_norm_factors)
 
-    # Translation of id to name in training set , so the test stocks will be compatible
-    # ticker_to_id = {}
-    # for ticker, df in train_df.groupby('ticker'):
-    #     stock_ids = set(df.stock_id.values)
-    #     assert (len(stock_ids) == 1)
-    #     ticker_to_id[ticker] = list(stock_ids)[0]
-    # for ticker, df in val_df.groupby('ticker'):
-    #     stock_ids = set(df.stock_id.values)
-    #     assert (len(stock_ids) == 1)
-    #     ticker_to_id[ticker] = list(stock_ids)[0]
-    #
-    #
-    # test_df, test_norm_factors, test_df_orig = get_normalized_training_data(inputdir, test_stocks,0,  start_test_date,
-    #                                                                         end_test_date , ticker_to_id=ticker_to_id)
+    # Create train & validation sets
+    min_date = datetime.strptime(start_train_date, "%Y-%m-%d")
+    max_date = datetime.strptime(end_train_date, "%Y-%m-%d")
+    df_train_val = all_df[all_df['date'].between(min_date, max_date)]
+
+    # Get the train/validation stocks
+    train_val_stocks =  np.array(list(set(df_train_val.ticker)))
+    train_val_stocks = train_val_stocks[np.random.permutation(len(train_val_stocks))]
+
+    train_stocks = in_train_and_in_test[:int(len(train_val_stocks) * val_train_split)]
+
+    # Split to train and validation
+    train_df = df_train_val[df_train_val['ticker'].isin(train_stocks)]
+    val_df = df_train_val[~df_train_val['ticker'].isin(train_stocks)]
 
 
-    ########################## add ma , overfit TODO - remove ###################################################
+
+    ##########################  ma , overfit TODO - remove ###################################################
     if overfit:
-        # Get  test set on later times
-        min_date = datetime.strptime(start_train_date, "%Y-%m-%d")
-        max_date = datetime.strptime(end_train_date, "%Y-%m-%d")
-        test_df = all_df[all_df['date'].between(min_date, max_date)]
-        test_df_orig = all_df_orig[all_df['date'].between(min_date, max_date)]
-
-
+        test_df = train_df
 
     if use_ma:
         def get_ma(df, ks):
@@ -503,7 +300,7 @@ def create_set(inputdir: str, outputdir: str, all_training_stocks: np.array, all
 
 
 
-def create_set_from_snp(inputdir: str, outputdir: str, split_date_factor=0.5 , add_stocks_outof_snp = 0,
+def create_set_from_snp(inputdir: str, outputdir: str,params : Dict,  split_date_factor=0.5 , add_stocks_outof_snp = 0,
                          use_ma = False , overfit = False):
     '''
     Create training set from s&p
@@ -534,24 +331,37 @@ def create_set_from_snp(inputdir: str, outputdir: str, split_date_factor=0.5 , a
     all_stocks_to_train = np.array(list(set(snp['ticker'])))
     all_stocks_to_test = np.array(list(set(snp['ticker'])))
     if add_stocks_outof_snp > 0:
-        stocks_to_add = get_good_stocks_out_of_snp()
-        stocks_to_add = stocks_to_add[:add_stocks_outof_snp]
-        all_stocks_to_train = np.hstack([all_stocks_to_train, stocks_to_add])
+        all_stocks_to_add = get_good_stocks_out_of_snp()
+        added = 0
+        chosen_stocks_to_add = []
+        for stock_name in all_stocks_to_add:
+            # Check if there are enough dates to this stock
+            df = pd.read_excel(os.path.join('C:/Users/dadab/projects/algotrading/data/tickers', stock_name, 'stockPrice.xlsx'), engine='openpyxl')
+            time_before = np.sum([pd.to_datetime(start_test_date) > d for d in list(set(df.Date))  ])
+            time_after = np.sum([pd.to_datetime(start_test_date) < d for d in list(set(df.Date))])
+            if ((time_before < params['max_encoder_length'] + 1) | (time_after < params['max_encoder_length'] + 1)):
+                continue
+            chosen_stocks_to_add.append(stock_name)
+            added += 1
+            if added > add_stocks_outof_snp:
+                break
+        all_stocks_to_train = np.hstack([all_stocks_to_train, chosen_stocks_to_add])
 
-    create_set(inputdir, outputdir, all_stocks_to_train, all_stocks_to_test, val_train_split, start_train_date, end_train_date,
+    # Create the set - same stocks for test & tain , only different times
+    create_set(inputdir, outputdir, params, all_stocks_to_train, all_stocks_to_train, val_train_split, start_train_date, end_train_date,
                start_test_date, end_test_date, use_ma = use_ma , overfit = overfit)
+
+    # Create the set - more stocks in train - may not work well with tft
+    # create_set(inputdir, outputdir, params, all_stocks_to_train, all_stocks_to_test, val_train_split, start_train_date, end_train_date,
+    #            start_test_date, end_test_date, use_ma = use_ma , overfit = overfit)
 
 
 if __name__ == "__main__":
     #get_good_stocks_out_of_snp()
+    params = get_config()
+
     np.random.seed(42)
     inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v1_ma20'
-    create_set_from_snp(inputdir, outputdir, split_date_factor=0.5 ,add_stocks_outof_snp = 0 , use_ma = True , overfit = False)
-
-    # create_set_from_stocks_out_and_in_snp(inputdir, outputdir  ,split_date_factor= 0.5 )
-
-    # outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_overfit'
-    #
-    # create_set_from_snp(inputdir, outputdir ,split_date_factor= 0.5 )
+    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v5_ma20'
+    create_set_from_snp(inputdir, outputdir, params, split_date_factor=0.5 ,add_stocks_outof_snp = 200 , use_ma = True , overfit = False)
 
