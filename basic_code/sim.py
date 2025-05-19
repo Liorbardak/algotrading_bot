@@ -53,7 +53,7 @@ def run_trade_sim(datadir : str ,
                  ):
     '''
     Run a simple trade simulation
-    :param datadir:
+    :param datadir: location of the stocks for simulation
     :param trade_bots:
     :param run_this_stock_only:
     :param fix_reference_index: if true - the reference is do nothing
@@ -72,7 +72,7 @@ def run_trade_sim(datadir : str ,
 
     os.makedirs(results_dir , exist_ok=True)
     # Read data
-    stocks_df = pd.read_csv(os.path.join(datadir, 'all_stocks.csv'))    
+    stocks_df = pd.read_csv(os.path.join(datadir,'all_stocks.csv'))
     reference_index = pd.read_csv(os.path.join(datadir, 'reference_index.csv'))
 
     if fix_reference_index:
@@ -106,18 +106,13 @@ def run_trade_sim(datadir : str ,
 
 
 if __name__ == "__main__":
-    datadir = 'C:/Users/dadab/projects/algotrading/data/snp500'
-    results_dir =  "C:/Users/dadab/projects/algotrading/results/ToKeep"
+    stock_path = 'C:/Users/dadab/projects/algotrading/data/snp500'
+    stock_path = 'C:/Users/dadab/projects/algotrading/data/snp500_with_prediction'
+    results_dir =  "C:/Users/dadab/projects/algotrading/results/trading_sim/prediction_ma_test"
+
+    run_trade_sim(datadir=stock_path, results_dir=results_dir,
+                  trade_bots=[CharnyBotV3(),CharnyBotV2(), CharnyBotBase() ], do_report=False, do_run=True)
 
 
-    #
-    #
-    # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[ CharnyBotV4()], do_report=False,  run_this_stock_only='A')
-    run_trade_sim(datadir=datadir, results_dir=results_dir,
-                  trade_bots=[ CharnyBotBase(),CharnyBotV2() ], do_report=False, do_run=False)
-    # run_trade_sim(datadir=datadir, results_dir=results_dir,
-    #               trade_bots=[CharnyBotV2() , CharnyBotV4()], do_report=False , do_run = False)
-
-    # run_trade_sim(datadir=datadir, results_dir=results_dir,
+    # run_trade_sim(datadir=os.path.join(datadir, 'all_stocks.csv'), results_dir=results_dir,
     #               trade_bots=[CharnyBotPlayground()], do_report=True,  run_this_stock_only='A')

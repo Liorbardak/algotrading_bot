@@ -128,7 +128,10 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
     ticker = set(df.ticker)
     for stock_name in ticker:
        # normalize so first closing price will be 100
-       normFact = 100 / df[(df.ticker == stock_name) & (df.date == refData)][reference_key].values[0]
+       try:
+            normFact = 100 / df[(df.ticker == stock_name) & (df.date == refData)][reference_key].values[0]
+       except:
+           print('error' , stock_name)
        for k in keys_to_average:
            df[k] = df[k].astype(float)  # convert entire column if appropriate
            df.loc[df.ticker == stock_name, k] = df[df.ticker == stock_name][k] * normFact
@@ -145,15 +148,20 @@ def get_average_stock(dfi : pd.DataFrame)->pd.DataFrame:
 
 if __name__ == "__main__":
     np.random.seed(42)
-    datadir ='C:/Users/dadab/projects/algotrading/data/snp500'
+    # Create reference index
+    pred_df = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500_with_prediction/all_stocks.csv')
+    index = get_average_stock(pred_df)
+    index.to_csv('C:/Users/dadab/projects/algotrading/data/snp500_with_prediction/reference_index.csv')
 
-    snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
-
-    create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
-                 filter_by_length = False ,  )
-
-
-    prerprocess_data(datadir)
+    # datadir ='C:/Users/dadab/projects/algotrading/data/snp500'
+    #
+    # snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/tickers/sp500_stocks.csv')
+    #
+    # create_index("C:/Users\dadab\projects/algotrading\data/tickers", datadir,sorted(snp['Ticker'].values) ,
+    #              filter_by_length = False ,  )
+    #
+    #
+    # prerprocess_data(datadir)
 
 
 

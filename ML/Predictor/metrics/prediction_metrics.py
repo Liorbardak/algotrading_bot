@@ -93,12 +93,12 @@ def run_metrics(predictors):
 
 
     dbname = params['db']
-    prediction_times = [5]
+    prediction_times = [15]
     results_dir = f"C:/Users/dadab/projects/algotrading/results/inference"
     outputdir = f"C:/Users/dadab/projects/algotrading/results/eval"
     run_prediction_metrics(dbname, predictors, results_dir, outputdir, prediction_times)
 
 
 if __name__ == "__main__":
-    run_metrics(predictors= ['lstm1',  'simp_tf', 'tft', 'rls'])
+    run_metrics(predictors= ['no_prediction'])
     #run_metrics(predictors=['tft'])

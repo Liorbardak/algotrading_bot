@@ -20,7 +20,7 @@ from torch import nn
 
 
 
-def run_inference(datadir, outputdir ,  params ,display = False , dbname = 'test_stocks.csv'):
+def run_inference(datadir, outputdir ,  params ,display = False , dbname = 'test_stocks.csv' , omit_stock_outof_snp = True):
     '''
     Run inference and save results
     :param datadir: location of data to training
@@ -48,9 +48,10 @@ def run_inference(datadir, outputdir ,  params ,display = False , dbname = 'test
     merged_df = pd.merge(df, pred_df, on=['ticker','date'], how='outer')
 
     #omit stocks that should not be there - take only snp
-    snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500/all_stocks.csv')
-    snp_stocks = list(set(snp['ticker']))
-    merged_df = merged_df[merged_df["ticker"].isin(snp_stocks)]
+    if omit_stock_outof_snp:
+        snp = pd.read_csv('C:/Users/dadab/projects/algotrading/data/snp500/all_stocks.csv')
+        snp_stocks = list(set(snp['ticker']))
+        merged_df = merged_df[merged_df["ticker"].isin(snp_stocks)]
 
     merged_df.to_csv(os.path.join(outputdir,'ticker_data_with_prediction.csv'))
 
@@ -226,7 +227,6 @@ def main():
 
     run_inference(db_path, outdir ,params,  display = False, dbname ='test_stocks.csv')
 
-    #run_inference(db_path, outdir ,params,  display = False, dbname ='train_stocks.csv')
 
 if __name__ == "__main__":
     main()

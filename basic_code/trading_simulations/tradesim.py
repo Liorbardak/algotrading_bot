@@ -20,7 +20,7 @@ class TradeSimSimple(object):
         # Init stock holding array
         info = {}
         dates = set(stocks_df.date)
-        names = set(stocks_df.name)
+        names = set(stocks_df.ticker)
         info['stocks_per_share'] = np.zeros((len(names), len(dates)))
         info['reference_stocks'] = np.zeros(len(dates), )
         info['total_value'] = np.zeros(len(dates), )
@@ -31,7 +31,7 @@ class TradeSimSimple(object):
 
 
         # loop on all stock , run bot strategy  per stock
-        for si,  (stock_name, stock_dfs) in enumerate(stocks_df.groupby('name', sort=True)):
+        for si,  (stock_name, stock_dfs) in enumerate(stocks_df.groupby('ticker', sort=True)):
             try:
                 stock_df = pd.DataFrame(stock_dfs.copy())
                 stock_df.reset_index(inplace=True, drop=True)

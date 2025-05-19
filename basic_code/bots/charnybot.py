@@ -613,6 +613,7 @@ class CharnyBotV2(CharnyBotV1):
         super().__init__(name, params)
         self._name = name
 
+
     def strategy(self, stock_df: pd.DataFrame) -> np.array:
         '''
 
@@ -648,6 +649,111 @@ class CharnyBotV3(CharnyBotV1):
         super().__init__(name, params)
         self._name = name
 
+
+    def get_features(self, stock_df: pd.DataFrame) -> Dict:
+        '''
+        Get "features" from stocks
+        :param stock_df:
+        :param do_normalize:
+        :return:
+        '''
+
+
+
+        # Moving averages
+        ma_200 = stock_df['close'].rolling(window=200).mean()
+        ma_150 = stock_df['close'].rolling(window=150).mean()
+        ma_50 = stock_df['close'].rolling(window=50).mean()
+        ma_20 = stock_df['pred5_ma20']
+
+
+        price_to_ma50_ratio =  stock_df['close'].values / ma_50.values
+        price_to_ma150_ratio = stock_df['close'].values / ma_150.values
+        price_to_ma200_ratio = stock_df['close'].values / ma_200.values
+
+        dt = self._params['SMA150_Slop_day_gap']
+        ma_150_Slop_buy_criteria = np.full(len(stock_df), False)
+        ma_150_Slop_buy_criteria[150+dt:] = (ma_150.values[150+dt:] / ma_150.values[150:-dt]) > (1. +  self._params['SMA150_Slop_buy_criteria'])
+
+        # price is above ma150 , but not by too much
+        diff_to_ma150_buy_criteria = np.full(len(stock_df), False)
+        diff_to_ma150_buy_criteria[150:] =  (price_to_ma150_ratio[150:] > 1) & (price_to_ma150_ratio[150:] < (1+ self._params['Current_Precent_From_150SMA_to_buy']))
+
+        diff_to_ma50_buy_criteria = np.full(len(stock_df), False)
+        diff_to_ma50_buy_criteria[150:] =  (price_to_ma50_ratio[150:] > 1) & (price_to_ma50_ratio[150:] < (1+ self._params['Current_Precent_From_50SMA_to_buy']))
+
+        diff_to_ma50_sell_criteria = np.full(len(stock_df), False)
+        diff_to_ma50_sell_criteria[150:] = price_to_ma50_ratio[150:] > (1 + self._params['Current_Precent_From_50SMA_to_sell'])
+
+        diff_to_ma150_sell_criteria = np.full(len(stock_df), False)
+        diff_to_ma150_sell_criteria[150:] = price_to_ma150_ratio[150:] > (1 + self._params['Current_Precent_From_50SMA_to_sell'])
+
+        th = 0.1
+        ma_20_local_max  = ((ma_20.values  - np.hstack([ma_20.values[1:],ma_20.values[-1]])) > th) &   ((ma_20.values  - np.hstack([ma_20.values[0], ma_20.values[:-1]])) >th)
+        ma_20_local_min = ((ma_20.values  - np.hstack([ma_20.values[1:],ma_20.values[-1]])) < th*2) &   ((ma_20.values  - np.hstack([ma_20.values[0], ma_20.values[:-1]])) < th*2)
+
+
+        fast_higher_than_slow = np.zeros(len(stock_df),)
+        fast_higher_than_slow[150:] = \
+            (ma_20[150:] > ma_50[150:]).astype(int)
+
+        ma_crossing = np.zeros(len(stock_df), )
+        ma_crossing[1:] = np.diff(fast_higher_than_slow)
+
+        ma_crossing_success = np.zeros(len(stock_df), )
+        ma_crossing_sticky = np.zeros(len(stock_df), )
+        number_ma_crossing_in_last_50 = np.zeros(len(stock_df), )
+        number_ma_peaks_in_last_50 = np.zeros(len(stock_df), )
+
+        trend = 0
+        trend_cnt = 0
+        success = 0
+        success_cnt = 0
+        for i in np.arange(len(stock_df)):
+            if i > 50:
+                number_ma_crossing_in_last_50[i] = np.sum(np.abs(ma_crossing[i-50:i]))
+                number_ma_peaks_in_last_50[i] = np.sum(np.abs(ma_20_local_max[i-50:i])) + np.sum(np.abs(ma_20_local_min[i-50:i]))
+            if ma_crossing[i] == 1:
+                buy_price = stock_df['close'][i]
+                trend = 1
+                trend_cnt = 1
+            elif   ma_crossing[i] == -1:
+                sell_price = stock_df['close'][i]
+                if(buy_price < sell_price):
+                    if success_cnt > 0:
+                        success_cnt = 0
+                    success_cnt = success_cnt - 1
+                else:
+                    if success_cnt < 0:
+                        success_cnt = 0
+                    success_cnt = success_cnt + 1
+                trend = -1
+                trend_cnt = -1
+            ma_crossing_sticky[i] = trend_cnt
+            ma_crossing_success[i] = success_cnt
+            trend_cnt = trend_cnt + trend
+
+        is_local_max, is_local_min,resistance_level, support_level =  self.detect_support_and_resistance(stock_df)
+
+        features = dict()
+        features['ma_200']= ma_200
+        features['ma_150'] = ma_150
+        features['ma_50'] = ma_50
+        features['ma_20'] = ma_20
+        features['ma_150_Slop_buy_criteria'] = ma_150_Slop_buy_criteria
+        features['ma_crossing'] = ma_crossing
+        features['ma_crossing_sticky'] = ma_crossing_sticky
+        features['ma_crossing_success'] = ma_crossing_success
+        features['number_ma_crossing_in_last_50'] = number_ma_crossing_in_last_50
+        features['number_ma_peaks_in_last_50']   = number_ma_peaks_in_last_50
+        features['diff_to_ma50_sell_criteria'] = diff_to_ma50_sell_criteria
+        features['is_local_max'] = is_local_max
+        features['is_local_min'] = is_local_min
+        features['resistance_level'] = resistance_level
+        features['support_level'] = support_level
+
+
+        return features
     def strategy(self, stock_df: pd.DataFrame) -> np.array:
         '''
 
@@ -660,9 +766,10 @@ class CharnyBotV3(CharnyBotV1):
         # Heuristics
         trade_criteria = np.full(len(stock_df), 0)
 
-        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)]= 1  # buy
-        #trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell
-        trade_criteria[(stock_df['close'].values < features['support_level']*0.995)] = -1
+        trade_criteria[ features['ma_150_Slop_buy_criteria']  & (features['ma_crossing'] == 1)  & (features['number_ma_crossing_in_last_50'] < 2)]= 1  # buy
+        trade_criteria [(features['ma_crossing'] == -1)] = -1  # sell]= 1  # buy
+
+
         # convert to single action of sell/buy all
         nstocks = 0
         trade_signal = np.full(len(stock_df), tradeOrder('hold'))
@@ -676,10 +783,12 @@ class CharnyBotV3(CharnyBotV1):
         return trade_signal
 
 
+
 class CharnyBotV4(CharnyBotV1):
     def __init__(self, name: str = 'charnybotv4', params: Dict = None):
         super().__init__(name, params)
         self._name = name
+
 
     def strategy(self, stock_df: pd.DataFrame) -> np.array:
         '''

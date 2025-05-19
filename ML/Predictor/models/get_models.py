@@ -29,10 +29,10 @@ def get_model(model_type : str, parameters : dict , dataset = None , checkpoint_
 
     elif model_type == 'lstm2':
         if checkpoint_to_load == "":
-            model = LitStockPredictor(model=Seq2SeqLSTM( input_size=parameters['input_len'], hidden_size=64, output_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
+            model = LitStockPredictor(model=Seq2SeqLSTM2( input_size=parameters['input_len'], hidden_size=64, output_len=parameters['pred_len']) ,  params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
         else:
             model = LitStockPredictor.load_from_checkpoint(checkpoint_to_load,
-                                                           model=Seq2SeqLSTM( input_size=parameters['input_len'], hidden_size=64, output_len=parameters['pred_len']),
+                                                           model=Seq2SeqLSTM2( input_size=parameters['input_len'], hidden_size=64, output_len=parameters['pred_len']),
                                                            params  = {'lr' : parameters['lr'] ,'loss': nn.L1Loss()})
 
     elif model_type == 'regressor':
