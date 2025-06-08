@@ -1,5 +1,5 @@
 {
-  "model_type" : "tft",
+  "model_type" : "simp_tf",
   "_comment": "simp_tf , tft ,lstm1 ,lstm2",
   "db" : "snp_v5",
   "lr" : 1e-3 ,

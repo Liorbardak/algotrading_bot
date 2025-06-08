@@ -60,7 +60,6 @@ def run_training(datadir : str ,outdir: str ,params : Dict ):
     trainer.fit(model, train_loader, val_loader)
 
 
-
 if __name__ == "__main__":
 
     params = get_config()

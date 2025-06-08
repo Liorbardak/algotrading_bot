@@ -25,8 +25,13 @@ class TimeSeriesTransformer(nn.Module):
         seq_len = x.size(1)
         x = self.embedding(x) + self.positional_encoding[:seq_len]
         x = x.permute(1, 0, 2)  # Transformer expects [seq_len, batch, embed_dim]
-        mask = generate_square_subsequent_mask(seq_len).to(x.device)
-        x = self.transformer_encoder(x, mask)
+
+        # No need for this mask , since we are doing batch forecasting with complete historical sequences
+        # mask = generate_square_subsequent_mask(seq_len).to(x.device)
+        # x = self.transformer_encoder(x, mask)
+
+        x = self.transformer_encoder(x)
+
         x = x[-1]  # last time step
         return self.decoder(x)
 
