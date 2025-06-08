@@ -923,5 +923,4 @@ class CharnyBotPlayground(CharnyBotV1):
                 trade_signal[t] = tradeOrder('sell')
                 nstocks = 0
 
-
         return trade_signal
