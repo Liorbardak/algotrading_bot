@@ -658,8 +658,6 @@ class CharnyBotV3(CharnyBotV1):
         :return:
         '''
 
-
-
         # Moving averages
         ma_200 = stock_df['close'].rolling(window=200).mean()
         ma_150 = stock_df['close'].rolling(window=150).mean()

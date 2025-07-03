@@ -63,8 +63,7 @@ def run_training(datadir : str ,outdir: str ,params : Dict ):
 if __name__ == "__main__":
 
     params = get_config()
-    ddname =  params['db']
-    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
-    outdir = f"C:/Users/dadab/projects/algotrading/training/{ddname}_{params['model_type']}"
+    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ params['db']}/'
+    outdir = f"C:/Users/dadab/projects/algotrading/training/{params['run_name']}_{params['model_type']}"
 
     run_training(datadir, outdir ,  params=params)

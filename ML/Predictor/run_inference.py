@@ -99,7 +99,7 @@ def run_inference_simple(datadir, outputdir , checkpoint_to_load, params ,displa
             output_cpu_gt = output_cpu_gt + 1
 
 
-            print(loss)
+            #print(f"loss {loss}")
             # Store predictions
             ids_to_show = [np.argmax(np.mean((output_cpu - output_cpu_gt) ** 2, axis=1))]  # worth sample
             #ids_to_show = range(output_cpu.shape[0])
@@ -215,10 +215,9 @@ def run_inference_tft(datadir, outputdir , checkpoint_to_load, params, display=F
 def main():
 
     params = get_config()
-    dbtrain_name = params['db']
-    db_path = f'C:/Users/dadab/projects/algotrading/data/training/{dbtrain_name}/'   #path of
-    checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{dbtrain_name}_{params['model_type']}"
-    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{dbtrain_name}_{params['model_type']}"
+    db_path = f'C:/Users/dadab/projects/algotrading/data/training/{params['db']}/'   # path of the database
+    checkpoint_path = f"C:/Users/dadab/projects/algotrading/training/{params['run_name']}_{params['model_type']}"
+    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{params['run_name']}_{params['model_type']}"
 
 
     params['checkpoint_to_load'] = os.path.join(checkpoint_path, "checkpoints", "best-checkpoint.ckpt") # TODO - best-checkpoint may not be the last one

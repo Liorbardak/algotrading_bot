@@ -14,11 +14,15 @@ from pytorch_forecasting import TimeSeriesDataSet
 from pytorch_forecasting.data import GroupNormalizer
 from pytorch_forecasting.data.encoders import NaNLabelEncoder
 
+from scipy.ndimage import median_filter
+
 class StockDataset(Dataset):
-    def __init__(self, df, seq_len=60, pred_len=2 , step = 1 , get_meta = False, features=['open', 'high', 'low', 'close', 'volume'] ,
+    def __init__(self, df, seq_len=60, pred_len=2 , step = 1 , get_meta = False,per_filter = 'medfilt', features=['open', 'high', 'low', 'close', 'volume'] ,
                  features_to_normalize = ['open', 'high', 'low', 'close', 'volume','ma20','ma50']):
+
         self.seq_len = seq_len
         self.pred_len = pred_len
+        self.per_filter = per_filter
         self.samples = []
         self.meta = []
         reference_feature=   'close'
@@ -31,9 +35,13 @@ class StockDataset(Dataset):
             values = stock_df[features].values
             dates = stock_df['date'].values
             for i in range(1,len(values) - seq_len - pred_len, step):
-
-                x = copy.copy(values[i:i + seq_len])
-                y =  copy.copy(values[i + seq_len:i + seq_len + pred_len, reference_feature_idx])  # prediction GT
+                if  self.per_filter == 'medfilt':
+                    vals = copy.copy(values[i:i + seq_len + pred_len])
+                    x =  median_filter(vals[:seq_len],  size=(3,1), mode='nearest')
+                    y = median_filter(vals[seq_len:seq_len + pred_len, reference_feature_idx],  size=3, mode='nearest')
+                else:
+                    x = copy.copy(values[i:i + seq_len])
+                    y =  copy.copy(values[i + seq_len:i + seq_len + pred_len, reference_feature_idx])  # prediction GT
 
                 # Normalize by the  reference_feature (close price) of the last time in the input
                 reference = x[-1, reference_feature_idx]
@@ -44,6 +52,7 @@ class StockDataset(Dataset):
                 y = y / norm_factor
                 # let the prediction target to be the offset respect the last normalized price (== 1)   TODO - revisit
                 y = y-1
+
 
                 self.samples.append((torch.tensor(x, dtype=torch.float32),
                                      torch.tensor(y, dtype=torch.float32)))

@@ -4,18 +4,18 @@ import numpy as np
 import pandas as pd
 import pylab as plt
 import json
-from typing import List
+from typing import List , Dict
 import seaborn as sns
 from basic_code.utils.report_utils import HtmlReport
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ML.Predictor.config.config import get_config
 
-def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outputdir : str , prediction_times : List  ):
+def run_prediction_metrics(param: Dict, predictors: str, results_dir : str, outputdir : str , prediction_times : List  ):
 
     # Combine all predictors data
     df_with_gt = []
     for predictor in predictors:
-        df = pd.read_csv(os.path.join(results_dir, f"{dbname}_{predictor}", "ticker_data_with_prediction.csv" ))
+        df = pd.read_csv(os.path.join(results_dir, f"{param['run_name']}_{predictor}", "ticker_data_with_prediction.csv" ))
         df['predictor'] = predictor
         df_with_gt.append(df)
     df_with_gt = pd.concat(df_with_gt)
@@ -24,10 +24,6 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
     for t in sorted(prediction_times):
         df_with_gt[f"pred_gt{t}"] = np.nan
         df_with_gt[f"pred_err{t}"] = np.nan
-
-    # Patrial test TODO - remove
-    #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(sorted(list(set(df_with_gt['ticker'].values)))[:10])]
-    #df_with_gt = df_with_gt[df_with_gt['ticker'].isin(['ENPH','SMCI', 'AXON' , 	'BLDR'])]
 
 
     for ticker, sdf in  df_with_gt.groupby(['ticker','predictor']):
@@ -80,7 +76,7 @@ def run_prediction_metrics(dbname: str, predictors: str, results_dir : str, outp
     print(pd.DataFrame(res))
     report.add_df('error per ticker', pd.DataFrame(res_per_stock))
     report.add_df('results (error as percentage of price)', pd.DataFrame(res))
-    report.to_file(os.path.join(outputdir , f'prediction_metric_report_{dbname}.html'))
+    report.to_file(os.path.join(outputdir , f'prediction_metric_report_{param['run_name']}.html'))
 
 def run_metrics(predictors):
     # Prevent sleep

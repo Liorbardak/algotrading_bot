@@ -97,21 +97,20 @@ def no_prediction(datadir: str, outputdir : str, pred_len : int  = 15, omit_stoc
         snp_stocks = list(set(snp['ticker']))
         df = df[df["ticker"].isin(snp_stocks)]
     df.to_csv(os.path.join(outputdir, 'ticker_data_with_prediction.csv'))
-def run_simple_predictors(ddname):
-    # Run rls predictor
+def run_simple_predictors(params: dict):
+    # Run rls + no prediction
 
-
-    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
-    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{ddname}_rls"
+    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{params['db']}/'
+    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{params['run_name']}_rls"
     run_rls_predictor(datadir, outdir)
 
     #No prediction at all
-    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{ddname}/'
-    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{ddname}_no_prediction"
+    datadir = f'C:/Users/dadab/projects/algotrading/data/training/{params['db']}/'
+    outdir = f"C:/Users/dadab/projects/algotrading/results/inference/{params['run_name']}_no_prediction"
     no_prediction(datadir, outdir)
 
 
 if __name__ == "__main__":
     params = get_config()
-    run_simple_predictors( ddname = params['db'])
+    run_simple_predictors( params)
 

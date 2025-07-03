@@ -197,6 +197,7 @@ def get_good_stocks_out_of_snp(recalc = False):
 def create_set(inputdir: str, outputdir: str,params : Dict, all_training_stocks: np.array, all_test_stocks: np.array, val_train_split,
                start_train_date, end_train_date, start_test_date, end_test_date , use_ma = False , overfit = False):
     '''
+    Create training set
     :param inputdir:
     :param outputdir:
     :param all_stocks:
@@ -303,7 +304,7 @@ def create_set(inputdir: str, outputdir: str,params : Dict, all_training_stocks:
 def create_set_from_snp(inputdir: str, outputdir: str,params : Dict,  split_date_factor=0.5 , add_stocks_outof_snp = 0,
                          use_ma = False , overfit = False):
     '''
-    Create training set from s&p
+    Create training set from s&p stocks
      Prepare the 3 sets - train & validation from start_train_date to  end_train_date ,
      test - all stocks start_test_date - end_test_date
     :param inputdir:
@@ -313,7 +314,7 @@ def create_set_from_snp(inputdir: str, outputdir: str,params : Dict,  split_date
 
     :return:
     '''
-
+    stockdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
     os.makedirs(outputdir, exist_ok=True)
 
     # Get all snp stocks to simulate
@@ -336,9 +337,13 @@ def create_set_from_snp(inputdir: str, outputdir: str,params : Dict,  split_date
         chosen_stocks_to_add = []
         for stock_name in all_stocks_to_add:
             # Check if there are enough dates to this stock
-            df = pd.read_excel(os.path.join('C:/Users/dadab/projects/algotrading/data/tickers', stock_name, 'stockPrice.xlsx'), engine='openpyxl')
-            time_before = np.sum([pd.to_datetime(start_test_date) > d for d in list(set(df.Date))  ])
-            time_after = np.sum([pd.to_datetime(start_test_date) < d for d in list(set(df.Date))])
+            stockfile = os.path.join(stockdir, stock_name, 'stockPrice.csv')
+            if os.path.exists(stockfile) == False:
+                continue
+            df = pd.read_csv(stockfile)
+            #df = pd.read_excel(os.path.join(stockdir, stock_name, 'stockPrice.xlsx'), engine='openpyxl')
+            time_before = np.sum([pd.to_datetime(start_test_date) > d for d in list(set(pd.to_datetime(df.Date)))  ])
+            time_after = np.sum([pd.to_datetime(start_test_date) < d for d in list(set(pd.to_datetime(df.Date)))])
             if ((time_before < params['max_encoder_length'] + 1) | (time_after < params['max_encoder_length'] + 1)):
                 continue
             chosen_stocks_to_add.append(stock_name)
@@ -362,6 +367,6 @@ if __name__ == "__main__":
 
     np.random.seed(42)
     inputdir = 'C:/Users/dadab/projects/algotrading/data/tickers'
-    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v5_ma20'
-    create_set_from_snp(inputdir, outputdir, params, split_date_factor=0.5 ,add_stocks_outof_snp = 200 , use_ma = True , overfit = False)
+    outputdir = 'C:/Users/dadab/projects/algotrading/data/training/snp_v6'
+    create_set_from_snp(inputdir, outputdir, params, split_date_factor=0.5 ,add_stocks_outof_snp = 200 , use_ma = False , overfit = False)
 
