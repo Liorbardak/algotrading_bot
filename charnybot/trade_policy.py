@@ -69,7 +69,6 @@ class TradingPolicyBase:
         :return:
         '''
         for ticker in tickers:
-
             sell_command = self.can_sell(portfolio , date , ticker , tickers_df , complement_df)
             buy_command = self.can_buy(portfolio , date , ticker , tickers_df , complement_df)
 
