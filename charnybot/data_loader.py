@@ -2,11 +2,11 @@ import pandas as pd
 import numpy as np
 import os
 import json
-from config.config import TICKERS_DIR, COMPLEMENT_RESULTS_DIR
+import re
 import datetime
 class FinancialDataLoaderBase:
-    def __init__(self):
-        pass
+    def __init__(self , config):
+        self.config = config
 
     def get_stock_features(self, stock_df):
         '''
@@ -27,7 +27,7 @@ class FinancialDataLoaderBase:
         dfs = []
         actual_min_max_dates = None
         for ticker in tickers:
-            df = pd.read_csv(os.path.join(TICKERS_DIR,ticker, 'stockPrice.csv'))
+            df = pd.read_csv(os.path.join(self.config.get_path("tickers_dir"),ticker, 'stockPrice.csv'))
 
             for kl in [k for k in df.keys() if 'Unnamed' in k]:
                 df = df.drop(kl, axis=1)
@@ -71,15 +71,23 @@ class FinancialDataLoaderBase:
 
         return all_df , actual_min_max_dates, avg_df
 
-    def load_complement_data(self, tickers , min_max_dates = None):
+    def load_complement_data(self, tickers = None , min_max_dates = None):
         """
-        Load historical stock data
+        Load historical complements  data
         """
+        if tickers is None:
+            # get all tickers that their earning has been analyzed
+            tickers = [re.match(r'^([A-Za-z]+)', file).group(1).upper() for file in os.listdir(self.config.get_path("complements_dir"))]
+
         dfs = []
         for ticker in tickers:
-            comps = json.load(open(os.path.join(COMPLEMENT_RESULTS_DIR, ticker + '_compliment_summary.json')))
+            comps = json.load(open(os.path.join(self.config.get_path("complements_dir"), ticker + '_compliment_summary.json')))
             df = pd.DataFrame(comps)
-            df['Date'] = pd.to_datetime(df['date'], utc=True)
+            # try:
+            #     df['Date'] = pd.to_datetime(df['date'], utc=True)
+            # except:
+            df['Date'] = pd.to_datetime(df['date'], format='ISO8601' , utc=True)
+
             df['ticker'] = ticker
             df['number_of_analysts_comp'] = (df['number_of_analysts_comp_1'] + df['number_of_analysts_comp_2'] +
                                              df['number_of_analysts_comp_3'])
@@ -92,26 +100,30 @@ class FinancialDataLoaderBase:
         all_df.reset_index(drop=True, inplace=True)
         return all_df
 
-    def load_all_data(self, tickers , min_max_dates = None , get_average_stock = False):
+    def load_all_data(self, tickers = None, min_max_dates = None , get_average_stock = False):
         '''
         Load historical stock data
         :param tickers:
         :param min_max_dates:
         :return:
         '''
-        stocks_df , actual_min_max_dates, avg_df  = self.load_stock_data(tickers, min_max_dates, get_average_stock = get_average_stock)
         complement_df = self.load_complement_data(tickers, min_max_dates)
+        if tickers is None:
+            tickers = set(complement_df.ticker)
+        stocks_df , actual_min_max_dates, avg_df  = self.load_stock_data(tickers, min_max_dates, get_average_stock = get_average_stock)
 
 
+        return stocks_df , complement_df ,  actual_min_max_dates , avg_df
 
-        return {'stocks_df': stocks_df , 'complement_df': complement_df , 'actual_min_max_dates': actual_min_max_dates ,
-                'avg_df' : avg_df }
-
-
+    def load_snp(self):
+        snp_df, _,_ = self.load_stock_data(tickers = ['^GSPC'])
+        return snp_df
 
 
 if __name__ == "__main__":
-    fl = FinancialDataLoaderBase()
+    from config.config import ConfigManager
+
+    fl = FinancialDataLoaderBase(ConfigManager())
     print(fl.load_complement_data(['ADM', 'AJG']))
 
     print(fl.load_stock_data(['ADM' , 'AJG' ] ,min_max_dates = ['2023-01-01', '2025-01-01'] ))
