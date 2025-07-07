@@ -39,8 +39,8 @@ def main(start_date = None, end_date = None, outputpath=None):
     tradingsim.run_training_simulation(start_date= start_date,end_date=end_date,outputpath=outputpath )
 
 if __name__ == "__main__":
-    start_date = '2021-01-01'
-    end_date = '2023-01-01'
-    outputpath = 'C:/Users/dadab/projects/algotrading/results/trading_sim/test2'
+    start_date = '2020-01-01'
+    end_date = '2025-01-01'
+    outputpath = 'C:/Users/dadab/projects/algotrading/results/trading_sim/test4'
 
     main(start_date= start_date , end_date=end_date , outputpath=outputpath)

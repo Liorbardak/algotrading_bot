@@ -65,7 +65,7 @@ class Portfolio:
     """
 
     def __init__(self,
-                 initial_cash: float = 100000.0,
+                 initial_cash: float = 100.0,
                  default_index: str = "S&P 500",
                  portfolio_name: str = "Trading Portfolio"):
         """
@@ -306,7 +306,7 @@ class Portfolio:
             del self.positions[ticker]
 
         # Record the trade
-        #self.trade_history.append(order)
+        self.trade_history.append(order)
 
         return True
 

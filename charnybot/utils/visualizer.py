@@ -5,18 +5,25 @@ from datetime import datetime, timedelta
 import matplotlib.dates as mdates
 
 def plot_overall( snp_df , trade_hist_df):
+    '''
+    General plot of np vs bot
+    '''
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6), sharex=True)
     ax1.plot( snp_df.Date ,snp_df.Close / snp_df.Close.values[0]*100 , label= 'snp')
     ax1.plot(trade_hist_df.Date, trade_hist_df.total_value.values/ trade_hist_df.total_value.values[0]*100 , label='trade')
     ax1.set_ylabel('Close Price')
     ax1.legend()
-
+    ax1.grid(True)
     ax2.plot(trade_hist_df.Date, trade_hist_df.n_ticker_in_protofolio)
     ax2.set_ylabel('Number of stocks in portfolio ')
     ax2.set_xlabel('Date')
+    ax2.grid(True)
+    plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
 
-    plt.gca().xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+    plt.gca().xaxis.set_major_locator(mdates.MonthLocator(interval=3, bymonthday=1))
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+
+
 
     plt.tight_layout()
 
@@ -38,6 +45,7 @@ def plot_ticker(ticker,stocks_df, complement_df , trade_df):
     ax1.set_title(f'{ticker} Stock Price and Analyst Compliments Analysis', fontsize=14, fontweight='bold')
     ax1.grid(True, alpha=0.3)
     ax1.legend()
+    ax1.grid(True)
     #ax1.set_ylim(80, 230)
 
     # Plot 2: Portfolio Percentage
@@ -52,6 +60,7 @@ def plot_ticker(ticker,stocks_df, complement_df , trade_df):
     ax2.grid(True, alpha=0.3)
     ax2.set_ylim(0, max(portfolio_percentages) * 1.1+0.1)
     ax2.legend(loc='upper right')
+    ax2.grid(True)
 
     # Create stacked bar chart
     width = 15  # Width of bars in days
@@ -74,12 +83,14 @@ def plot_ticker(ticker,stocks_df, complement_df , trade_df):
     ax3.legend()
     ax3.grid(True, alpha=0.3)
     ax3.set_ylim(0, complement_df.total_number_of_analysts.max()+1)
-
+    ax3.grid(True)
     # Format x-axis
-    ax3.xaxis.set_major_locator(mdates.YearLocator())
-    ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    ax3.xaxis.set_minor_locator(mdates.MonthLocator())
 
+    #ax3.xaxis.set_major_locator(mdates.YearLocator())
+    ax3.xaxis.set_major_locator(mdates.MonthLocator(interval=3, bymonthday=1))
+    ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+
+    #
     # Rotate x-axis labels
     plt.setp(ax3.xaxis.get_majorticklabels(), rotation=45, ha='right')
 

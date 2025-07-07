@@ -43,9 +43,9 @@ def tradesim_report(tickers_df , complement_df , snp_df , trade_hist_df ,outputd
     tickers_that_were_in_portfolio = [k for k in trade_hist_df.keys() if k in all_tickers]
     tickers_that_were_not_in_portfolio = set(all_tickers) - set(tickers_that_were_in_portfolio)
     # draw tickers that were in portfolio first
-    for ticker in   tickers_that_were_in_portfolio:
+    for ticker in   sorted(tickers_that_were_in_portfolio):
         fig = plot_ticker(ticker, tickers_df[tickers_df.ticker == ticker], complement_df[complement_df.ticker == ticker], trade_hist_df)
-        report.add_figure('ticker', fig)
+        report.add_figure(ticker, fig)
         import pylab as plt
         plt.close("all")
 

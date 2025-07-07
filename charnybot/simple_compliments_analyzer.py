@@ -21,8 +21,10 @@ def trade_sim(stockdir,  complement_dir , use_average_stock = False):
 
     mindate = all_stocks_average['Dates'].min()
     maxdate = all_stocks_average['Dates'].max()
-    # mindate = pd.to_datetime('2023-01-01')
-    # maxdate = pd.to_datetime('2024-12-30')
+    mindate = pd.to_datetime('2021-01-01')
+    maxdate = pd.to_datetime('2023-01-01')
+
+
     all_res = []
 
     for ticker in sorted(tickers):
@@ -46,7 +48,7 @@ def trade_sim(stockdir,  complement_dir , use_average_stock = False):
         for comp in comps:
 
             comp_date = (pd.Timestamp(comp['date'])).tz_localize(None)
-            if use_average_stock and (comp_date < mindate or comp_date > maxdate):
+            if  (comp_date < mindate or comp_date > maxdate):
                 continue
             # fix formating problems
             for k in comp.keys():
@@ -102,13 +104,17 @@ def trade_sim(stockdir,  complement_dir , use_average_stock = False):
             #    SELL criteria
             ##############################
 
-            prevday_ma = np.hstack([stock_price['ma_200'].values[0], stock_price['ma_200'].values[:-1], ])
+            prevday_ma = np.hstack([stock_price['ma_200'].values[0], stock_price['ma_200'].values[:-1]])
             prevday_price = np.hstack([stock_price['Close'].values[0], stock_price['Close'].values[:-1]])
 
             # Sell condition - 2 days after price goes below 200ma
             sel_cond1 = (stock_price['ma_200'][buy_ind:] > stock_price['Close'][buy_ind:]) & (
                     prevday_ma[buy_ind:] > prevday_price[buy_ind:])
-            sell_conds = np.where(sel_cond1)[0]
+            sell_at_the_end = [pd.Timestamp(v) > maxdate for v in stock_price.Date[buy_ind:]]
+
+            #sell_conds = np.where(sel_cond1)[0]
+            sell_conds = np.where( sell_at_the_end | sel_cond1.values)[0]
+
 
             if len(sell_conds) > 0:
                 sellind = sell_conds[0] + buy_ind
@@ -173,6 +179,8 @@ def get_relevant_tickers(complement_dir , stockdir ):
     maxdate = None
 
     relevant_tickers = [re.match(r'^([A-Za-z]+)', file).group(1).upper() for file in os.listdir(complement_dir)]
+    relevant_tickers = sorted(set(relevant_tickers))
+    relevant_tickers = ['CSWC']
     for ticker in relevant_tickers :
         if os.path.isfile(os.path.join(stockdir, ticker, 'stockPrice.csv')) == False:
             print(f"no stock {ticker}")
@@ -204,12 +212,11 @@ def get_relevant_tickers(complement_dir , stockdir ):
 
     return relevant_tickers, all_df
 
-def summerize_comment(complement_dir ,  comphrase =  r'^parsed_\d{4}_[1-4]_gpt41_2023' , summary_name = 'summarizeCompliments_gpt41_2023.json'):
+def summerize_complement(complement_dir ,  comphrase =  r'^parsed_\d{4}_[1-4]_gpt41_2023' , summary_name = 'summarizeCompliments_gpt41_2023.json'):
     '''
-    Summerize comments
+    Summerize complement
     '''
-    #comphrase =  r'^parsed_\d{4}_[1-4]_gpt41_2023'
-    #comphrase = r'^parsed_\d{4}_[1-4]_results'
+
     for ticker in [ticker for ticker in os.listdir(complement_dir) if os.path.isdir(os.path.join(complement_dir, ticker))]:
         compfiles  =[
             filename for filename in os.listdir(os.path.join(complement_dir, ticker))
@@ -241,8 +248,32 @@ if __name__ == "__main__":
     complement_dir = '../../data/complements/gpt41_2023'
     complement_dir = '../../data/complements/TRIP_all_validated_complements'
     stockdir = '../../data/tickers'
-    #summerize_comment(complement_dir)
+    outdir = '../../results/trading_sim/test2'
+
 
     df = trade_sim(stockdir, complement_dir)
     print("good compliments buy points:" )
     print(f'profit[%] {np.mean(df.profit):.2f}  snp profit[%] {np.mean(df.snp_profit):.2f} ,average stock profit[%] {np.mean(df.average_stock_profit):.2f}' )
+    df.to_csv(os.path.join(outdir, 'simple_sim.csv'))
+
+    # Name: ma_200, dtype: float64
+    # stock_price[stock_price.Date == '2021-12-15'].Close
+    # 745
+    # 25.290001
+    # Name: Close, dtype: float64
+    # stock_price[stock_price.Date == '2021-12-14'].Close
+    # 744
+    # 25.02
+    # Name: Close, dtype: float64
+    # stock_price[stock_price.Date == '2021-12-14'].ma_200
+    # 744
+    # 25.5021
+    # Name: ma_200, dtype: float64
+    # stock_price[stock_price.Date == '2021-12-13'].ma_200
+    # 743
+    # 25.4878
+    # Name: ma_200, dtype: float64
+    # stock_price[stock_price.Date == '2021-12-13'].Close
+    # 743
+    # 26.559999
+    # Name: Close, dtype: float64
