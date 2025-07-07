@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass, asdict
 from enum import Enum
 import pickle
-
+import copy
 from fontTools.misc.cython import returns
 
 
@@ -316,8 +316,8 @@ class Portfolio:
             timestamp=self.current_date,
             total_value=self.get_total_value(),
             cash=self.cash,
-            positions=self.positions.copy(),
-            default_index=self.default_index,
+            positions=copy.deepcopy(self.positions),
+            default_index=copy.deepcopy(self.default_index),
         )
         self.portfolio_history.append(snapshot)
 
@@ -328,7 +328,31 @@ class Portfolio:
                Args:
                    filepath: Path to save the file
         """
-        pass
+        # Get all ticker used
+        all_tickers = dict()
+        for snap in self.portfolio_history:
+            all_tickers.update(snap.positions)
+        tickers = list(all_tickers.keys())
+
+        all_data = []
+        for snap in self.portfolio_history:
+            r = {'Date' : pd.Timestamp(snap.timestamp),
+                 'total_value': snap.total_value,
+                 'cash': snap.cash,
+                 'default_index': snap.default_index.market_value,
+                 }
+            n_tickers = 0
+            for ticker in tickers:
+                if ticker in snap.positions.keys():
+                    if snap.positions[ticker].market_value > 0:
+                        n_tickers += 1
+                    r[ticker] = snap.positions[ticker].market_value
+                else:
+                    r[ticker] = 0
+            r['n_ticker_in_protofolio'] = n_tickers
+            all_data.append(r)
+        pd.DataFrame(all_data).to_csv(filepath)
+
     def save_history(self, filepath: str, format: str = 'pickle'):
         """
         Save portfolio history to file

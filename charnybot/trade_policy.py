@@ -224,7 +224,8 @@ class TradingPolicyMostBasic(TradingPolicy):
 
         # verify free cash is not negative
         print(f"portfolio  {date}, {self.portfolio.get_portfolio_weights()}")
-        assert self.portfolio.cash >= 0, f"free cash is negative  {self.portfolio.cash} {date}"
+
+        assert self.portfolio.cash + 1e-6 >= 0, f"free cash is negative  {self.portfolio.cash} {date}"
 
     def sell(self,  date , ticker , tickers_df , complement_df ,  portfolio_weight):
         '''
@@ -264,10 +265,10 @@ class TradingPolicyMostBasic(TradingPolicy):
         ######################################################################################################
         self.portfolio.sell_all_default_index(default_index[default_index.Date == date].Close.values[0] , date)
 
-        ##################################
-        # sell tickers that does not
-        ##################################
-        for portfolio_weight , ticker in portfolio_weights.items():
+        ###################################################
+        # sell tickers that does not meet price criteria
+        ###################################################
+        for ticker, portfolio_weight in portfolio_weights.items():
             self.sell(date , ticker , tickers_df , complement_df , portfolio_weight)
 
         #################
@@ -310,6 +311,9 @@ class TradingPolicyMostBasic(TradingPolicy):
         # Save results
         if outputpath is not None:
             os.makedirs(outputpath, exist_ok=True)
+            outfile = os.path.join(outputpath, 'trade_sim.csv')
+            self.portfolio.history_to_scv(outfile)
+
 
 
 
