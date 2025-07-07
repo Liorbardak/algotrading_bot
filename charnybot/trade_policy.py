@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from config.config import ConfigManager
 from utils.protofolio import Portfolio
-
+from copy import copy
 class TradingPolicy:
     _registry = {}
     @classmethod
@@ -21,13 +21,33 @@ class TradingPolicy:
 
 @TradingPolicy.register("MostBasic")
 class TradingPolicyMostBasic(TradingPolicy):
-    def __init__(self ,config,
-                 start_date = None , end_date = None):
+    def __init__(self ,config, default_index_name = 'snp' ):
         self.name = "MostBasic"
         self.config = config
         self.portfolio = Portfolio()
-        self.start_date  = start_date
-        self.end_date = end_date
+        self.default_index_name = default_index_name
+
+    def score_tickers(self, date, tickers_df, complement_df):
+
+        # Score tickers
+        portfolio_weights = self.portfolio.get_portfolio_weights()
+        tickers_score = dict()
+        # Re-score tickers already in the portfolio
+        for ticker, portfolio_weight  in portfolio_weights.items():
+            score = self.score_ticker_to_buy(date, ticker, tickers_df, complement_df, portfolio_weight)
+
+            if score['weighted_score'] > 0:
+                # Store only tickers with positive score - valid for buying
+                tickers_score[ticker] = score
+
+        # Score tickers  not in the portfolio
+        tickers_not_in_portfolio = set(complement_df[complement_df.Date.dt.normalize() == date].ticker) - set(portfolio_weights.keys())
+        for ticker in tickers_not_in_portfolio:
+            score = self.score_ticker_to_buy(date, ticker, tickers_df, complement_df, 0)
+            if score['weighted_score'] > 0:
+                # Store only tickers with positive score - valid for buying
+                tickers_score[ticker] = score
+        return tickers_score
 
     def score_ticker_to_buy(self, date, ticker, tickers_df, complement_df, portfolio_weight):
         '''
@@ -37,7 +57,7 @@ class TradingPolicyMostBasic(TradingPolicy):
 
         # Init ticker score at minimal level
         ticker_score = {'weighted_score': 0 , 'price_based_score': 0 ,  'complement_based_score': 0,
-                              'portfolio_based_score':0 }
+                              'portfolio_based_score':0 ,'portfolio_weight': portfolio_weight }
 
         #####################################
         # portfolio based score
@@ -118,12 +138,94 @@ class TradingPolicyMostBasic(TradingPolicy):
                                                   ticker_score['complement_based_score']])
         return ticker_score
 
-    def buy(self , date , tickers_score):
+    def buy(self , date , tickers_score , tickers_df , default_index_df):
         '''
         Should we buy this ticker at this date ?
         Choose the potion to buy for each of the new ticker
         May also choose to sell
         '''
+
+        number_of_stocks_in_portfolio = len(self.portfolio.positions)
+        # Check if there are new stocks  to add
+        new_tickers = list(set(tickers_score.keys()) - set(self.portfolio.positions.keys()))
+
+        number_of_new_new_tickers_to_add = np.min(
+            [self.config.get_parameter('portfolio', 'max_number_of_tickers') - number_of_stocks_in_portfolio,
+             len(new_tickers)])
+
+        ####################################
+        #   Add new tickers to the portfolio
+        ####################################
+
+        current_portfolio_weights = self.portfolio.get_portfolio_weights()
+        new_portfolio_weights = copy(current_portfolio_weights)
+
+        if number_of_new_new_tickers_to_add > 0:
+
+            # Set new tickers to add - TODO - choose by weighted score
+            new_tickers_to_add = new_tickers[:number_of_new_new_tickers_to_add]
+
+
+            if number_of_stocks_in_portfolio:
+                # Set the weight of the new tickers as the average weight in the portfolio
+
+                average_ticker_weight = sum(current_portfolio_weights.values()) / len(current_portfolio_weights)
+                new_ticker_weight = np.min([average_ticker_weight , self.config.get_parameter('portfolio', 'max_portion_per_ticker')])
+
+                # add the new tickers
+                new_portfolio_weights.update({ticker: new_ticker_weight for ticker in new_tickers_to_add})
+            else:
+                #
+                new_ticker_weight = self.config.get_parameter('portfolio', 'max_portion_per_ticker')
+                new_portfolio_weights = {ticker: new_ticker_weight for ticker in new_tickers_to_add}
+
+        # Clip weight to the maximal allow
+        for ticker in new_portfolio_weights.keys():
+            new_portfolio_weights[ticker] = np.min([new_portfolio_weights[ticker] , self.config.get_parameter('portfolio', 'max_portion_per_ticker')])
+
+
+        total_weights = sum(new_portfolio_weights.values())
+
+        if total_weights > 1.0:
+            # normalize weights - total_weights should do not exceed
+            new_portfolio_weights =  {ticker: weight / total_weights  for ticker,weight  in new_portfolio_weights.items()}
+        elif total_weights < 1.0:
+            # There is free cash - add it to stocks that does not
+            free_cash_weight = total_weights - 1.0
+            # Add the free chash equally  to all tickers
+
+
+        ###############################################
+        # Sell / buy tickers with the new distribution
+        ###############################################
+        total_value = self.portfolio.get_total_value()
+        for ticker, new_ticker_weight in new_portfolio_weights.items():
+            ticker_price = tickers_df[tickers_df.ticker == ticker].Close.values[0]
+            if ticker not in current_portfolio_weights:
+                # new ticker
+                value_per_stock = total_value * new_ticker_weight
+                ticker_price = tickers_df[tickers_df.ticker == ticker].Close.values[0]
+                quantity = value_per_stock / ticker_price
+                self.portfolio.buy_stock(ticker, quantity, ticker_price)
+            else:
+                # existing ticker - sell or buy
+                current_ticker_weight = current_portfolio_weights[ticker]
+                value_per_stock = total_value * (new_ticker_weight - current_ticker_weight)
+
+                if value_per_stock > 0:
+                    #buy
+                    quantity = value_per_stock / ticker_price
+                    self.portfolio.buy_stock(ticker, quantity, ticker_price, date)
+                else:
+                    #sell
+                    quantity = -value_per_stock / ticker_price
+                    self.portfolio.sell_stock(ticker, quantity, ticker_price , date)
+
+        # verify free cash is not negative
+        print(f"portfolio  {date}, {self.portfolio.get_portfolio_weights()}")
+        assert self.portfolio.cash >= 0, f"free cash is negative  {self.portfolio.cash} {date}"
+
+
 
     def sell(self,  date , ticker , tickers_df , complement_df ,  portfolio_weight):
         '''
@@ -133,72 +235,84 @@ class TradingPolicyMostBasic(TradingPolicy):
             # Not in portfolio - nothing to sell from this stock
             return
 
+        # Sell condition
         ma_200 = tickers_df[(tickers_df.ticker == ticker) & (tickers_df.Date == date)].ma_200.values[0]
         current_price = tickers_df[(tickers_df.ticker == ticker) & (tickers_df.Date == date)].Close.values[0]
-        if ~np.isnan(ma_200) and ma_200 > current_price:
-            # Sell all and return
-            return
+        sell_condition = ~np.isnan(ma_200) and ma_200 > current_price
 
-        # Check portion of this ticker in the portfolio
-        if portfolio_weight > self.config.get_parameter('portfolio','max_portion_per_ticker'):
-            # portfolio portion is too high - partial sell
-            return
+        if sell_condition:
+            # Sell all holdings for this ticker
+            ticker_price = tickers_df[tickers_df.ticker == ticker].Close.values[0]
+            self.portfolio.sell_stock(ticker,  self.portfolio.positions[ticker].quantity, ticker_price, date)
 
-    def trade_recurrent(self , date , tickers , tickers_df , complement_df , reference_index):
+
+
+    def trade_recurrent(self , date , tickers , tickers_df , complement_df , default_index):
         '''
         Manage the portfolio - decide what to buy /sell at this date
         :param tickers: all tickers that can be considered for trade
         :return:
         '''
+
+        # Update existing stocks in the portfolio
+        self.portfolio.update_prices(tickers_df[tickers_df.Date == date] , default_index[default_index.Date == date] , date)
+
         portfolio_weights = self.portfolio.get_portfolio_weights()
+
+        ######################################################################################################
+        # "sell" all  reference index - get cash for buying
+        #  will convert the unused  cash back to the reference index at the end of this day
+        ######################################################################################################
+        self.portfolio.sell_all_default_index(default_index[default_index.Date == date].Close.values[0] , date)
 
         #################
         # sell tickers
         #################
-        for ticker in tickers:
-            portfolio_weight = portfolio_weights[ticker] if ticker in portfolio_weights.keys() else 0
+        for portfolio_weight , ticker in portfolio_weights.items():
             self.sell(date , ticker , tickers_df , complement_df , portfolio_weight)
 
         #################
         # buy tickers
         #################
+        # Score tickers in portfolio
 
-        # score tickers
-        portfolio_weights = self.portfolio.get_portfolio_weights()
-        tickers_score = dict()
-        for ticker in tickers:
-            portfolio_weight = portfolio_weights[ticker] if ticker in portfolio_weights.keys() else 0
-            tickers_score['ticker'] = self.score_ticker_to_buy(date , ticker , tickers_df , complement_df, portfolio_weight)
+        tickers_score = self.score_tickers( date, tickers_df, complement_df)
+        # decide which tickers to buy
+        self.buy(date , tickers_score , tickers_df[tickers_df.Date.dt.normalize() == date] , default_index[default_index.Date == date])
 
-        # buy tickers
-        self.buy(date , tickers_score)
-
-        #################
+        ###################################################
         # buy reference index if there is residual cash
-        #################
+        ###################################################
+        
+        self.portfolio.buy_default_index_with_all_cash(default_index[default_index.Date == date].Close.values[0] , date)
 
 
 
 
 
-    def trade(self , tickers_df , complement_df , reference_index ):
+    def trade(self , tickers_df , complement_df , default_index , start_date = None , end_date = None ):
         '''
         Trade simulation
         '''
+        self.portfolio = Portfolio()
+        #
+        tickers = list(set(complement_df.ticker))
 
-        # Simplistic simulation
-        # - simulation per ticker
-        # - price gain/loss only on times were we actually bought the stock
-        for ticker, tdf in tickers_df.groupby('ticker'):
-            self.portfolio = Portfolio()
-            for date in tdf.Date:
-                print(date)
-                self.trade_recurrent( date, [ticker] ,  tickers_df , complement_df , reference_index )
+        # Set running dates
+        dates = tickers_df.Date
+        if start_date is not None:
+            dates = dates[dates >= start_date]
+        if end_date is not None:
+            dates = dates[dates <= end_date]
+
+        for date in dates:
+            #print(date)
+            self.trade_recurrent( date, tickers ,  tickers_df , complement_df , default_index )
 
 
 
 if __name__ == "__main__":
 
-    policy = TradingPolicy.create("MostBasic", config= ConfigManager(), start_date= 4, end_date = 1)
+    policy = TradingPolicy.create("MostBasic", config= ConfigManager())
     print(policy.name)
-    print(policy.start_date)
+

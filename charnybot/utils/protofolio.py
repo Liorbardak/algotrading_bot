@@ -8,6 +8,8 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 import pickle
 
+from fontTools.misc.cython import returns
+
 
 class OrderType(Enum):
     BUY = "buy"
@@ -35,7 +37,6 @@ class Position:
     """Represents a position in a stock"""
     ticker: str
     quantity: float
-    avg_price: float
     current_price: float
     last_updated: datetime
 
@@ -44,17 +45,7 @@ class Position:
         """Calculate current market value of the position"""
         return self.quantity * self.current_price
 
-    @property
-    def unrealized_pnl(self) -> float:
-        """Calculate unrealized profit/loss"""
-        return self.quantity * (self.current_price - self.avg_price)
 
-    @property
-    def unrealized_pnl_percent(self) -> float:
-        """Calculate unrealized profit/loss as percentage"""
-        if self.avg_price == 0:
-            return 0.0
-        return ((self.current_price - self.avg_price) / self.avg_price) * 100
 
 
 @dataclass
@@ -64,8 +55,7 @@ class PortfolioSnapshot:
     total_value: float
     cash: float
     positions: Dict[str, Position]
-    reference_index_value: float
-    reference_index_name: str = "S&P 500"
+    default_index: Position
 
 
 class Portfolio:
@@ -76,20 +66,20 @@ class Portfolio:
 
     def __init__(self,
                  initial_cash: float = 100000.0,
-                 reference_index: str = "S&P 500",
+                 default_index: str = "S&P 500",
                  portfolio_name: str = "Trading Portfolio"):
         """
         Initialize the portfolio
 
         Args:
             initial_cash: Starting cash amount
-            reference_index: Name of the reference index (default: S&P 500)
+            default_index: Name of the reference index (default: S&P 500)
             portfolio_name: Name of the portfolio
         """
         self.portfolio_name = portfolio_name
         self.initial_cash = initial_cash
         self.cash = initial_cash
-        self.reference_index = reference_index
+  
         self.current_date = datetime.now()
 
         # Portfolio holdings
@@ -99,13 +89,38 @@ class Portfolio:
         self.trade_history: List[TradeOrder] = []
         self.portfolio_history: List[PortfolioSnapshot] = []
 
-        # Reference index tracking
-        self.reference_index_value = 100.0  # Default starting value
-        self.reference_index_history: List[Tuple[datetime, float]] = []
+        # Reference index 
+        self.default_index =  Position(
+                ticker=default_index,
+                quantity=0,
+                current_price=0,
+                last_updated=None
+            )
 
         # Performance tracking
         self.total_invested = 0.0
         self.total_realized_pnl = 0.0
+
+    def buy_default_index_with_all_cash(self , default_index_price , date ):
+        '''
+        Buy default index with all the free cash
+        '''
+        if self.cash > 0:
+            self.default_index.quantity += self.cash / default_index_price
+            # Update default
+            self.default_index.current_price =  default_index_price
+            self.default_index.last_updated = date
+            self.cash = 0
+
+    def sell_all_default_index(self , default_index_price , date ):
+        '''
+        sell all default , get free cash
+        '''
+        self.cash += self.default_index.quantity*default_index_price
+        self.default_index.quantity = 0
+        self.default_index.current_price = default_index_price
+        self.default_index.last_updated = date
+
 
     def is_in(self , ticker: str) -> bool:
         """
@@ -115,22 +130,30 @@ class Portfolio:
         return (not ticker in self.positions.keys()) or self.positions[ticker].quantity == 0
 
     def get_total_value(self) -> float:
-        """Calculate total portfolio value (cash + all positions)"""
+        """Calculate total portfolio value"""
+        return self.get_total_invested_stocks_value() + self.get_total_free_value()
+
+    def get_total_invested_stocks_value(self) -> float:
+        """Calculate total portfolio invested value (all positions)"""
         positions_value = sum(pos.market_value for pos in self.positions.values())
-        return self.cash + positions_value
+        return positions_value
+
+    def get_total_free_value(self) -> float:
+        """cash + default index """
+        return self.cash + self.default_index.market_value
 
     def get_portfolio_weights(self) -> Dict[str, float]:
         """Get the weight/portion of each stock in the portfolio"""
         total_value = self.get_total_value()
-        if total_value == 0:
-            return {}
+        try:
+            if total_value == 0:
+                return {}
+        except:
+            total_value = self.get_total_value()
 
         weights = {}
         for ticker, position in self.positions.items():
             weights[ticker] = position.market_value / total_value
-
-        # Add cash weight
-        weights['CASH'] = self.cash / total_value
 
         return weights
 
@@ -140,41 +163,36 @@ class Portfolio:
         for ticker, position in self.positions.items():
             summary[ticker] = {
                 'quantity': position.quantity,
-                'avg_price': position.avg_price,
                 'current_price': position.current_price,
                 'market_value': position.market_value,
-                'unrealized_pnl': position.unrealized_pnl,
-                'unrealized_pnl_percent': position.unrealized_pnl_percent,
                 'weight': position.market_value / self.get_total_value() if self.get_total_value() > 0 else 0
             }
         return summary
 
-    def update_prices(self, price_updates: Dict[str, float],
-                      reference_index_value: Optional[float] = None,
-                      update_date: Optional[datetime] = None):
+    def update_prices(self, price_updates:pd.DataFrame,
+                      default_index: pd.DataFrame,
+                      update_date: pd.Timestamp):
         """
         Update stock prices and reference index value
 
         Args:
             price_updates: Dict of ticker -> new price
-            reference_index_value: New reference index value
+            default_index: New reference index value
             update_date: Date of the update (defaults to current time)
         """
-        if update_date is None:
-            update_date = datetime.now()
 
         self.current_date = update_date
+        update_tickers = set(price_updates.ticker)
 
         # Update stock prices
-        for ticker, new_price in price_updates.items():
-            if ticker in self.positions:
-                self.positions[ticker].current_price = new_price
+        for ticker in self.positions.keys():
+            if ticker in update_tickers:
+                self.positions[ticker].current_price = price_updates[price_updates.ticker == ticker].Close.values[0]
                 self.positions[ticker].last_updated = update_date
 
-        # Update reference index
-        if reference_index_value is not None:
-            self.reference_index_value = reference_index_value
-            self.reference_index_history.append((update_date, reference_index_value))
+        # Update default index
+        self.default_index.current_price = default_index.Close.values[0]
+        self.default_index.last_updated = update_date
 
         # Take a snapshot for history
         self._take_snapshot()
@@ -198,10 +216,10 @@ class Portfolio:
 
         total_cost = quantity * price
 
-        # Check if we have enough cash
-        if total_cost > self.cash:
-            print(f"Insufficient cash. Need ${total_cost:.2f}, have ${self.cash:.2f}")
-            return False
+        # # Check if we have enough cash
+        # if total_cost > self.cash:
+        #     print(f"Insufficient cash. Need ${total_cost:.2f}, have ${self.cash:.2f}")
+        #     return False
 
         # Create trade order
         order = TradeOrder(
@@ -221,11 +239,7 @@ class Portfolio:
             # Update existing position
             pos = self.positions[ticker]
             total_quantity = pos.quantity + quantity
-            total_cost_basis = (pos.quantity * pos.avg_price) + total_cost
-            new_avg_price = total_cost_basis / total_quantity
-
             pos.quantity = total_quantity
-            pos.avg_price = new_avg_price
             pos.current_price = price
             pos.last_updated = timestamp
         else:
@@ -233,7 +247,6 @@ class Portfolio:
             self.positions[ticker] = Position(
                 ticker=ticker,
                 quantity=quantity,
-                avg_price=price,
                 current_price=price,
                 last_updated=timestamp
             )
@@ -244,8 +257,16 @@ class Portfolio:
         print(f"Bought {quantity} shares of {ticker} at ${price:.2f} per share")
         return True
 
+    def sell_all(self, timestamp):
+        """
+        Sell all stocks
+        """
+        self.positions.keys()
+        for ticker in self.positions.keys():
+            self.sell_stock(ticker , self.positions[ticker].quantity , self.positions[ticker].current_price , timestamp)
+
     def sell_stock(self, ticker: str, quantity: float, price: float,
-                   timestamp: Optional[datetime] = None) -> bool:
+                   timestamp: Optional[datetime] = None  ) -> bool:
         """
         Sell a stock
 
@@ -282,8 +303,6 @@ class Portfolio:
 
         # Calculate realized P&L
         position = self.positions[ticker]
-        realized_pnl = quantity * (price - position.avg_price)
-        self.total_realized_pnl += realized_pnl
 
         # Update position
         position.quantity -= quantity
@@ -297,7 +316,6 @@ class Portfolio:
         # Record the trade
         self.trade_history.append(order)
 
-        print(f"Sold {quantity} shares of {ticker} at ${price:.2f} per share. Realized P&L: ${realized_pnl:.2f}")
         return True
 
     def _take_snapshot(self):
@@ -307,8 +325,7 @@ class Portfolio:
             total_value=self.get_total_value(),
             cash=self.cash,
             positions=self.positions.copy(),
-            reference_index_value=self.reference_index_value,
-            reference_index_name=self.reference_index
+            default_index=self.default_index,
         )
         self.portfolio_history.append(snapshot)
 
@@ -323,9 +340,9 @@ class Portfolio:
         total_return_percent = (total_return / initial_value) * 100 if initial_value > 0 else 0
 
         # Calculate reference index performance
-        if self.reference_index_history:
-            initial_ref = self.reference_index_history[0][1]
-            current_ref = self.reference_index_history[-1][1]
+        if self.default_index_history:
+            initial_ref = self.default_index_history[0][1]
+            current_ref = self.default_index_history[-1][1]
             ref_return_percent = ((current_ref - initial_ref) / initial_ref) * 100 if initial_ref > 0 else 0
         else:
             ref_return_percent = 0
@@ -336,9 +353,7 @@ class Portfolio:
             'total_return_percent': total_return_percent,
             'cash': self.cash,
             'invested_value': current_value - self.cash,
-            'realized_pnl': self.total_realized_pnl,
-            'unrealized_pnl': sum(pos.unrealized_pnl for pos in self.positions.values()),
-            'reference_index_return_percent': ref_return_percent,
+            'default_index_return_percent': ref_return_percent,
             'excess_return': total_return_percent - ref_return_percent,
             'num_positions': len(self.positions),
             'num_trades': len(self.trade_history)
@@ -359,7 +374,7 @@ class Portfolio:
                 pickle.dump({
                     'portfolio_history': self.portfolio_history,
                     'trade_history': self.trade_history,
-                    'reference_index_history': self.reference_index_history,
+                    'default_index_history': self.default_index_history,
                     'portfolio_name': self.portfolio_name,
                     'initial_cash': self.initial_cash
                 }, f)
@@ -374,13 +389,12 @@ class Portfolio:
                         'positions': {
                             ticker: {
                                 'quantity': pos.quantity,
-                                'avg_price': pos.avg_price,
                                 'current_price': pos.current_price,
                                 'last_updated': pos.last_updated.isoformat()
                             } for ticker, pos in snap.positions.items()
                         },
-                        'reference_index_value': snap.reference_index_value,
-                        'reference_index_name': snap.reference_index_name
+                        'default_index_value': snap.default_index_value,
+                        'default_index_name': snap.default_index_name
                     } for snap in self.portfolio_history
                 ],
                 'trade_history': [
@@ -393,9 +407,9 @@ class Portfolio:
                         'order_id': trade.order_id
                     } for trade in self.trade_history
                 ],
-                'reference_index_history': [
+                'default_index_history': [
                     {'timestamp': ts.isoformat(), 'value': val}
-                    for ts, val in self.reference_index_history
+                    for ts, val in self.default_index_history
                 ],
                 'portfolio_name': self.portfolio_name,
                 'initial_cash': self.initial_cash
@@ -433,7 +447,6 @@ class Portfolio:
                     positions[ticker] = Position(
                         ticker=ticker,
                         quantity=pos_data['quantity'],
-                        avg_price=pos_data['avg_price'],
                         current_price=pos_data['current_price'],
                         last_updated=datetime.fromisoformat(pos_data['last_updated'])
                     )
@@ -443,8 +456,8 @@ class Portfolio:
                     total_value=snap_data['total_value'],
                     cash=snap_data['cash'],
                     positions=positions,
-                    reference_index_value=snap_data['reference_index_value'],
-                    reference_index_name=snap_data['reference_index_name']
+                    default_index_value=snap_data['default_index_value'],
+                    default_index_name=snap_data['default_index_name']
                 )
                 self.portfolio_history.append(snapshot)
 
@@ -460,9 +473,9 @@ class Portfolio:
                 )
                 self.trade_history.append(trade)
 
-            self.reference_index_history = [
+            self.default_index_history = [
                 (datetime.fromisoformat(item['timestamp']), item['value'])
-                for item in data['reference_index_history']
+                for item in data['default_index_history']
             ]
 
             self.portfolio_name = data['portfolio_name']
@@ -474,7 +487,7 @@ class Portfolio:
                 self.cash = latest.cash
                 self.positions = latest.positions.copy()
                 self.current_date = latest.timestamp
-                self.reference_index_value = latest.reference_index_value
+                self.default_index_value = latest.default_index_value
 
         print(f"Portfolio history loaded from {filepath}")
 
@@ -495,7 +508,7 @@ Performance:
 - Total Return: ${metrics.get('total_return', 0):,.2f} ({metrics.get('total_return_percent', 0):.2f}%)
 - Realized P&L: ${metrics.get('realized_pnl', 0):,.2f}
 - Unrealized P&L: ${metrics.get('unrealized_pnl', 0):,.2f}
-- Reference Index Return: {metrics.get('reference_index_return_percent', 0):.2f}%
+- Reference Index Return: {metrics.get('default_index_return_percent', 0):.2f}%
 - Excess Return: {metrics.get('excess_return', 0):.2f}%
 
 Positions ({metrics.get('num_positions', 0)} stocks):
@@ -545,14 +558,14 @@ Positions ({metrics.get('num_positions', 0)} stocks):
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45)
 
         # Reference index comparison
-        if self.reference_index_history:
-            ref_dates = [ts for ts, _ in self.reference_index_history]
-            ref_values = [val for _, val in self.reference_index_history]
+        if self.default_index_history:
+            ref_dates = [ts for ts, _ in self.default_index_history]
+            ref_values = [val for _, val in self.default_index_history]
 
             # Normalize reference index to same scale as portfolio
             ref_normalized = [val / ref_values[0] * self.initial_cash for val in ref_values]
 
-            ax2.plot(ref_dates, ref_normalized, label=f'{self.reference_index}', alpha=0.7)
+            ax2.plot(ref_dates, ref_normalized, label=f'{self.default_index}', alpha=0.7)
             ax2.plot(dates, values, label='Portfolio', linewidth=2)
             ax2.set_title('Portfolio vs Reference Index')
             ax2.set_ylabel('Value ($)')
@@ -588,7 +601,7 @@ if __name__ == "__main__":
         "AAPL": 155.0,
         "MSFT": 310.0,
         "GOOGL": 2850.0
-    }, reference_index_value=105.0)
+    }, default_index_value=105.0)
 
     # Sell some shares
     portfolio.sell_stock("AAPL", 25, 155.0)

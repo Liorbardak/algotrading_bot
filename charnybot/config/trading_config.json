@@ -8,7 +8,7 @@
   "policy": {
     "policy_name": "MostBasic"
   },
-  "portfolio": {
+    "portfolio": {
     "max_portion_per_ticker" : 0.1,
     "max_number_of_tickers" : 10
   },
