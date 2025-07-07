@@ -257,14 +257,6 @@ class Portfolio:
         print(f"Bought {quantity} shares of {ticker} at ${price:.2f} per share")
         return True
 
-    def sell_all(self, timestamp):
-        """
-        Sell all stocks
-        """
-        self.positions.keys()
-        for ticker in self.positions.keys():
-            self.sell_stock(ticker , self.positions[ticker].quantity , self.positions[ticker].current_price , timestamp)
-
     def sell_stock(self, ticker: str, quantity: float, price: float,
                    timestamp: Optional[datetime] = None  ) -> bool:
         """
@@ -314,7 +306,7 @@ class Portfolio:
             del self.positions[ticker]
 
         # Record the trade
-        self.trade_history.append(order)
+        #self.trade_history.append(order)
 
         return True
 
@@ -329,36 +321,14 @@ class Portfolio:
         )
         self.portfolio_history.append(snapshot)
 
-    def get_performance_metrics(self) -> Dict:
-        """Calculate portfolio performance metrics"""
-        if not self.portfolio_history:
-            return {}
+    def history_to_scv(self, filepath: str):
+        """
+               Convert portfolio history to data frame and save to file
 
-        initial_value = self.initial_cash
-        current_value = self.get_total_value()
-        total_return = current_value - initial_value
-        total_return_percent = (total_return / initial_value) * 100 if initial_value > 0 else 0
-
-        # Calculate reference index performance
-        if self.default_index_history:
-            initial_ref = self.default_index_history[0][1]
-            current_ref = self.default_index_history[-1][1]
-            ref_return_percent = ((current_ref - initial_ref) / initial_ref) * 100 if initial_ref > 0 else 0
-        else:
-            ref_return_percent = 0
-
-        return {
-            'total_value': current_value,
-            'total_return': total_return,
-            'total_return_percent': total_return_percent,
-            'cash': self.cash,
-            'invested_value': current_value - self.cash,
-            'default_index_return_percent': ref_return_percent,
-            'excess_return': total_return_percent - ref_return_percent,
-            'num_positions': len(self.positions),
-            'num_trades': len(self.trade_history)
-        }
-
+               Args:
+                   filepath: Path to save the file
+        """
+        pass
     def save_history(self, filepath: str, format: str = 'pickle'):
         """
         Save portfolio history to file

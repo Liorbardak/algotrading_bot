@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import numpy as np
 from config.config import ConfigManager
@@ -34,7 +36,7 @@ class TradingPolicyMostBasic(TradingPolicy):
         tickers_score = dict()
         # Re-score tickers already in the portfolio
         for ticker, portfolio_weight  in portfolio_weights.items():
-            score = self.score_ticker_to_buy(date, ticker, tickers_df, complement_df, portfolio_weight)
+            score = self.score_ticker(date, ticker, tickers_df, complement_df, portfolio_weight)
 
             if score['weighted_score'] > 0:
                 # Store only tickers with positive score - valid for buying
@@ -43,13 +45,13 @@ class TradingPolicyMostBasic(TradingPolicy):
         # Score tickers  not in the portfolio
         tickers_not_in_portfolio = set(complement_df[complement_df.Date.dt.normalize() == date].ticker) - set(portfolio_weights.keys())
         for ticker in tickers_not_in_portfolio:
-            score = self.score_ticker_to_buy(date, ticker, tickers_df, complement_df, 0)
+            score = self.score_ticker(date, ticker, tickers_df, complement_df, 0)
             if score['weighted_score'] > 0:
                 # Store only tickers with positive score - valid for buying
                 tickers_score[ticker] = score
         return tickers_score
 
-    def score_ticker_to_buy(self, date, ticker, tickers_df, complement_df, portfolio_weight):
+    def score_ticker(self, date, ticker, tickers_df, complement_df, portfolio_weight):
         '''
         Should we buy this ticker at this date ?
         Score this option using current day / historical data
@@ -175,7 +177,6 @@ class TradingPolicyMostBasic(TradingPolicy):
                 # add the new tickers
                 new_portfolio_weights.update({ticker: new_ticker_weight for ticker in new_tickers_to_add})
             else:
-                #
                 new_ticker_weight = self.config.get_parameter('portfolio', 'max_portion_per_ticker')
                 new_portfolio_weights = {ticker: new_ticker_weight for ticker in new_tickers_to_add}
 
@@ -225,8 +226,6 @@ class TradingPolicyMostBasic(TradingPolicy):
         print(f"portfolio  {date}, {self.portfolio.get_portfolio_weights()}")
         assert self.portfolio.cash >= 0, f"free cash is negative  {self.portfolio.cash} {date}"
 
-
-
     def sell(self,  date , ticker , tickers_df , complement_df ,  portfolio_weight):
         '''
         Should we sell this ticker at this date?
@@ -265,9 +264,9 @@ class TradingPolicyMostBasic(TradingPolicy):
         ######################################################################################################
         self.portfolio.sell_all_default_index(default_index[default_index.Date == date].Close.values[0] , date)
 
-        #################
-        # sell tickers
-        #################
+        ##################################
+        # sell tickers that does not
+        ##################################
         for portfolio_weight , ticker in portfolio_weights.items():
             self.sell(date , ticker , tickers_df , complement_df , portfolio_weight)
 
@@ -275,7 +274,6 @@ class TradingPolicyMostBasic(TradingPolicy):
         # buy tickers
         #################
         # Score tickers in portfolio
-
         tickers_score = self.score_tickers( date, tickers_df, complement_df)
         # decide which tickers to buy
         self.buy(date , tickers_score , tickers_df[tickers_df.Date.dt.normalize() == date] , default_index[default_index.Date == date])
@@ -290,7 +288,7 @@ class TradingPolicyMostBasic(TradingPolicy):
 
 
 
-    def trade(self , tickers_df , complement_df , default_index , start_date = None , end_date = None ):
+    def trade(self , tickers_df , complement_df , default_index , outputpath = None , start_date = None , end_date = None ):
         '''
         Trade simulation
         '''
@@ -300,14 +298,18 @@ class TradingPolicyMostBasic(TradingPolicy):
 
         # Set running dates
         dates = tickers_df.Date
+        dates = np.array(sorted(list(set(dates))))
         if start_date is not None:
-            dates = dates[dates >= start_date]
+            dates = dates[dates >= pd.Timestamp(start_date).tz_localize('UTC')]
         if end_date is not None:
-            dates = dates[dates <= end_date]
+            dates = dates[dates <= pd.Timestamp(end_date).tz_localize('UTC')]
 
         for date in dates:
-            #print(date)
             self.trade_recurrent( date, tickers ,  tickers_df , complement_df , default_index )
+
+        # Save results
+        if outputpath is not None:
+            os.makedirs(outputpath, exist_ok=True)
 
 
 

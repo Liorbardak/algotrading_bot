@@ -34,4 +34,7 @@ def main(start_date = None, end_date = None):
 
 if __name__ == "__main__":
     start_date = '2020-10-05'
-    main(start_date= start_date)
+    end_date = '2021-01-01'
+    outputpath = 'results/trading_sim'
+
+    main(start_date= start_date , end_date=end_date , outputpath)
