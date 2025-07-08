@@ -30,7 +30,14 @@ def plot_overall( snp_df , trade_hist_df):
     return fig
 
 def plot_ticker(ticker,stocks_df, complement_df , trade_df):
-
+    '''
+    Display a single ticker price date - percentage in portfolio , complements
+    :param ticker:
+    :param stocks_df:
+    :param complement_df:
+    :param trade_df:
+    :return:
+    '''
 
     # Create the plot with 3 subplots
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12),
@@ -98,3 +105,51 @@ def plot_ticker(ticker,stocks_df, complement_df , trade_df):
     plt.tight_layout()
     #plt.show()
     return fig
+
+
+def holding_per_time(trade_df , tickers_that_were_in_portfolio ):
+
+    """Simple text-based visualization"""
+
+
+    # prepare holding dict
+    quarters = pd.date_range(start=trade_df.Date.min(), end=trade_df.Date.max(), freq='QS')
+    holdings_dict = {}
+    for quarter in quarters:
+        quarter_df = trade_df[(trade_df.Date >= quarter) &  (trade_df.Date < quarter + pd.DateOffset(months=3)) ]
+        holdings_dict[quarter.strftime('%Y-%m-%d')] = [ticker for ticker in tickers_that_were_in_portfolio if sum(quarter_df[ticker]) > 0]
+
+    dates = list(holdings_dict.keys())
+
+    max_stocks = np.max([len(v) for v in holdings_dict.values()])
+    fig, ax = plt.subplots(figsize=(15, (max_stocks+6) // 3))
+
+    for i, (date, stocks) in enumerate(holdings_dict.items()):
+        # Plot vertical line for each date
+        ax.axvline(x=i, color='lightgray', linestyle='--', alpha=0.5)
+
+        # Add stock names as text
+        stock_text = ', '.join(stocks)
+        ax.text(i, 0.01, stock_text, rotation=90, ha='center', va='bottom',
+                fontsize=7, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7))
+
+    ax.set_xlim(-0.5, len(dates) - 0.5)
+    ax.set_xticks(range(len(dates)))
+
+    ax.set_xticklabels(dates, rotation=45)
+    #ax.set_ylim(0, 1)
+    ax.set_ylabel('Holdings')
+    ax.set_xlabel('Dates')
+    ax.set_title('Stock Holdings Over Time')
+    ax.grid(True, alpha=0.3)
+
+    # Remove y-axis ticks as they're not meaningful
+    ax.set_yticks([])
+
+    plt.tight_layout()
+    #plt.show()
+    return fig
+
+
+
+

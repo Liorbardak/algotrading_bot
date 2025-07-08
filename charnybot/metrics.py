@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from utils.visualizer import plot_ticker , plot_overall
+from utils.visualizer import plot_ticker , plot_overall, holding_per_time
 from utils.report_utils import  HtmlReport
 def tradesim_report(tickers_df , complement_df , snp_df , trade_hist_df ,outputdir):
     '''
@@ -16,6 +16,15 @@ def tradesim_report(tickers_df , complement_df , snp_df , trade_hist_df ,outputd
     snp_df = snp_df[(snp_df.Date >= start_date) &  (snp_df.Date <= end_date)]
     trade_hist_df = trade_hist_df[(trade_hist_df.Date >= start_date) &  (trade_hist_df.Date <= end_date)]
     tickers_df = tickers_df[(tickers_df.Date >= start_date) &  (tickers_df.Date <= end_date)]
+
+    # Get tickers used
+    all_tickers = list(set(complement_df.ticker))
+    tickers_that_were_in_portfolio = [k for k in trade_hist_df.keys() if k in all_tickers]
+    tickers_that_were_not_in_portfolio = set(all_tickers) - set(tickers_that_were_in_portfolio)
+
+
+
+
 
    # Performance per year
     start_of_year = start_date
@@ -37,11 +46,14 @@ def tradesim_report(tickers_df , complement_df , snp_df , trade_hist_df ,outputd
     fig = plot_overall(snp_df, trade_hist_df)
     report.add_figure('bot vs snp', fig)
 
+    # holdings per time
+    fig = holding_per_time(trade_hist_df, tickers_that_were_in_portfolio)
+
+    report.add_figure("holdings", fig)
+
+
     # add per ticker figures
 
-    all_tickers = list(set(complement_df.ticker))
-    tickers_that_were_in_portfolio = [k for k in trade_hist_df.keys() if k in all_tickers]
-    tickers_that_were_not_in_portfolio = set(all_tickers) - set(tickers_that_were_in_portfolio)
     # draw tickers that were in portfolio first
     for ticker in   sorted(tickers_that_were_in_portfolio):
         fig = plot_ticker(ticker, tickers_df[tickers_df.ticker == ticker], complement_df[complement_df.ticker == ticker], trade_hist_df)
@@ -55,6 +67,9 @@ def tradesim_report(tickers_df , complement_df , snp_df , trade_hist_df ,outputd
     #     report.add_figure('ticker', fig)
     #     import pylab as plt
     #     plt.close("all")
+
+
+
 
     report.to_file(os.path.join(outputdir, 'report.html'))
 
