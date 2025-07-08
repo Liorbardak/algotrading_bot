@@ -321,7 +321,7 @@ class Portfolio:
         )
         self.portfolio_history.append(snapshot)
 
-    def history_to_scv(self, filepath: str):
+    def history_to_csv(self, filepath: str):
         """
                Convert portfolio history to data frame and save to file
 
